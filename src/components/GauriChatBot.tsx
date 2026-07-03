@@ -14,7 +14,8 @@ import {
   CheckCircle,
   HelpCircle,
   ArrowRight,
-  TrendingUp
+  TrendingUp,
+  Languages
 } from "lucide-react";
 
 interface Message {
@@ -64,6 +65,7 @@ export function GauriChatBot({ setCurrentPage, currentPage }: GauriChatBotProps)
   const [isListening, setIsListening] = useState(false);
   const [isVoiceEnabled, setIsVoiceEnabled] = useState(true);
   const [speechSupported, setSpeechSupported] = useState(false);
+  const [language, setLanguage] = useState<"auto" | "mr" | "hi" | "en">("auto");
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatWindowRef = useRef<HTMLDivElement>(null);
@@ -73,6 +75,20 @@ export function GauriChatBot({ setCurrentPage, currentPage }: GauriChatBotProps)
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (SpeechRecognition) {
       setSpeechSupported(true);
+    }
+  }, []);
+
+  // Warm up voices on load so speechSynthesis.getVoices() is ready when clicked
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.speechSynthesis) {
+      window.speechSynthesis.getVoices();
+      const handleVoicesChanged = () => {
+        window.speechSynthesis.getVoices();
+      };
+      window.speechSynthesis.addEventListener("voiceschanged", handleVoicesChanged);
+      return () => {
+        window.speechSynthesis.removeEventListener("voiceschanged", handleVoicesChanged);
+      };
     }
   }, []);
 
@@ -103,17 +119,95 @@ export function GauriChatBot({ setCurrentPage, currentPage }: GauriChatBotProps)
       const utterance = new SpeechSynthesisUtterance(cleanText);
       
       const voices = window.speechSynthesis.getVoices();
-      const preferredVoice = voices.find(v => 
-        v.lang.includes("en-IN") || 
-        v.lang.includes("hi-IN") || 
-        v.lang.includes("mr-IN") ||
-        v.name.includes("Google") || 
-        v.name.includes("India")
-      );
+      
+      // Known female voice names or indicators
+      const femaleNames = [
+        "google us english", "microsoft zira", "samantha", "zira", "hazel", 
+        "veena", "kanya", "kalpana", "heera", "raveena", "siri", "susan", 
+        "victoria", "clara", "ameli", "elsa", "isabella", "joana", "moira", 
+        "tessa", "sabina", "sandra"
+      ];
+      
+      // Known male voice names to exclude
+      const maleNames = [
+        "david", "mark", "george", "ravi", "harsh", "male", "guy", "prakash", 
+        "paul", "stefan", "peter", "tom", "collin", "james"
+      ];
+      
+      let preferredVoice: SpeechSynthesisVoice | undefined = undefined;
+
+      // Filter target languages based on language selection state
+      const targetLangs = 
+        language === "mr" ? ["mr-in", "mr"] :
+        language === "hi" ? ["hi-in", "hi"] :
+        language === "en" ? ["en-in", "en-us", "en-gb", "en"] :
+        ["mr-in", "hi-in", "en-in"];
+
+      // 1. Try to find a female voice in the preferred language
+      preferredVoice = voices.find(v => {
+        const nameLower = v.name.toLowerCase();
+        const langLower = v.lang.toLowerCase();
+        const isTargetLang = targetLangs.some(lang => langLower.includes(lang));
+        const isFemale = femaleNames.some(f => nameLower.includes(f));
+        const isMale = maleNames.some(m => nameLower.includes(m));
+        return isTargetLang && isFemale && !isMale;
+      });
+
+      // 2. Try to find any voice in the preferred language (excluding known males)
+      if (!preferredVoice) {
+        preferredVoice = voices.find(v => {
+          const langLower = v.lang.toLowerCase();
+          const nameLower = v.name.toLowerCase();
+          const isTargetLang = targetLangs.some(lang => langLower.includes(lang));
+          const isMale = maleNames.some(m => nameLower.includes(m));
+          return isTargetLang && !isMale;
+        });
+      }
+
+      // 3. Try to find any voice in the preferred language (even male/unknown if nothing else is available)
+      if (!preferredVoice) {
+        preferredVoice = voices.find(v => {
+          const langLower = v.lang.toLowerCase();
+          return targetLangs.some(lang => langLower.includes(lang));
+        });
+      }
+
+      // 4. Fallback to general high-quality female voice
+      if (!preferredVoice) {
+        preferredVoice = voices.find(v => {
+          const nameLower = v.name.toLowerCase();
+          return nameLower.includes("google us english") || 
+                 nameLower.includes("microsoft zira") || 
+                 nameLower.includes("samantha");
+        });
+      }
+
+      // 5. Fallback to any other general female voice
+      if (!preferredVoice) {
+        preferredVoice = voices.find(v => {
+          const nameLower = v.name.toLowerCase();
+          const isFemale = femaleNames.some(f => nameLower.includes(f));
+          const isMale = maleNames.some(m => nameLower.includes(m));
+          return isFemale && !isMale;
+        });
+      }
+
+      // 6. Final fallback: Any Indian regional voice
+      if (!preferredVoice) {
+        preferredVoice = voices.find(v => 
+          v.lang.toLowerCase().includes("en-in") || 
+          v.lang.toLowerCase().includes("mr-in") || 
+          v.lang.toLowerCase().includes("hi-in")
+        );
+      }
+
       if (preferredVoice) {
         utterance.voice = preferredVoice;
       }
-      utterance.rate = 0.95; // Slightly slower for crisp articulation
+      
+      // Fast and clear reading rate (1.15x speed) for energetic mentor style
+      utterance.rate = 1.15; 
+      utterance.pitch = 1.05; // Slightly higher pitch for clear female tone warmth
       window.speechSynthesis.speak(utterance);
     } catch (e) {
       console.error("Speech Synthesis Error:", e);
@@ -159,7 +253,7 @@ export function GauriChatBot({ setCurrentPage, currentPage }: GauriChatBotProps)
       const response = await fetch("/api/gauri-chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: formattedHistory }),
+        body: JSON.stringify({ messages: formattedHistory, language }),
       });
 
       if (!response.ok) {
@@ -203,7 +297,18 @@ export function GauriChatBot({ setCurrentPage, currentPage }: GauriChatBotProps)
     }
 
     const recognition = new SpeechRecognition();
-    recognition.lang = "en-IN"; // optimal for Indian accent (English/Hindi/Marathi combos)
+    
+    // Dynamically set recognition language based on chosen user preference
+    if (language === "mr") {
+      recognition.lang = "mr-IN";
+    } else if (language === "hi") {
+      recognition.lang = "hi-IN";
+    } else if (language === "en") {
+      recognition.lang = "en-IN";
+    } else {
+      recognition.lang = "en-IN"; // Default mixed/Indian accent
+    }
+
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
 
@@ -370,6 +475,52 @@ export function GauriChatBot({ setCurrentPage, currentPage }: GauriChatBotProps)
                 >
                   <X size={14} />
                 </button>
+              </div>
+            </div>
+
+            {/* Horizontal Language Switcher Bar */}
+            <div className="px-4 py-2 bg-slate-100/80 border-b border-slate-200 flex items-center justify-between text-[10px] text-slate-500 font-semibold select-none shrink-0">
+              <span className="flex items-center gap-1">
+                <Languages size={11} className="text-[#004aad]" />
+                Language / भाषा:
+              </span>
+              <div className="flex gap-1 animate-fadeIn">
+                {[
+                  { code: "auto", label: "Auto 🤖" },
+                  { code: "mr", label: "मराठी" },
+                  { code: "hi", label: "हिंदी" },
+                  { code: "en", label: "English" }
+                ].map((lang) => (
+                  <button
+                    key={lang.code}
+                    onClick={() => {
+                      setLanguage(lang.code as any);
+                      // Add an auto feedback message to show that Gauri changed language
+                      const welcomeMsg: Record<string, string> = {
+                        auto: "Gauri will auto detect your language. 🤖",
+                        mr: "गौरी आता तुमच्याशी मराठीत बोलेल! 🚩 अभ्यास जोमाने सुरु ठेवा, यश तुमचंच आहे!",
+                        hi: "गौरी अब आपसे हिंदी में बात करेगी! 🌟 अपनी तैयारी जारी रखें, सफलता आपके कदम चूमेगी!",
+                        en: "Gauri will now guide you in English! 📚 Keep practicing and stay motivated!"
+                      };
+                      setMessages(prev => [
+                        ...prev,
+                        {
+                          id: `lang-change-${Date.now()}`,
+                          role: "assistant",
+                          text: welcomeMsg[lang.code],
+                          timestamp: new Date()
+                        }
+                      ]);
+                    }}
+                    className={`px-2 py-0.5 rounded transition-all cursor-pointer text-[9px] font-bold ${
+                      language === lang.code
+                        ? "bg-[#004aad] text-white shadow-xs scale-105"
+                        : "bg-white text-slate-600 hover:bg-slate-50 border border-slate-200"
+                    }`}
+                  >
+                    {lang.label}
+                  </button>
+                ))}
               </div>
             </div>
 
