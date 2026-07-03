@@ -197,7 +197,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans" id="app-root">
       {/* GLOBAL HEADER */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-sm" id="global-header">
+      <header className="bg-white border-b border-gray-200 relative z-40 shadow-sm" id="global-header">
         <div className="max-w-[1200px] mx-auto px-4 md:px-6 py-3 flex items-center justify-between">
           
           {/* Left: Logo & Stacked Text */}
