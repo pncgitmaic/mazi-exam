@@ -1,0 +1,6 @@
+{
+  "name": "maziexam",
+  "description": "A clean, academic, and responsive mock test portal for Government Exams.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
