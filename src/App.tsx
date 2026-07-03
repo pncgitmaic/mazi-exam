@@ -17,7 +17,13 @@ import {
   RefreshCw,
   GraduationCap,
   Award,
-  LogIn
+  LogIn,
+  Briefcase,
+  Building,
+  Calendar,
+  DollarSign,
+  MapPin,
+  Users
 } from "lucide-react";
 import { 
   upcomingExams, 
@@ -25,7 +31,9 @@ import {
   mockTests, 
   ExamDetail, 
   PaperPdf, 
-  MockTest 
+  MockTest,
+  jobAlerts,
+  JobAlert
 } from "./data";
 import { auth, db, onAuthStateChanged, collection, addDoc, User as FirebaseUser } from "./firebase";
 import { AuthModal } from "./components/AuthModal";
@@ -72,7 +80,7 @@ function AppLogo({ className, id, isFooter = false }: { className?: string; id?:
 
 export default function App() {
   // Navigation State
-  const [currentPage, setCurrentPage] = useState<"home" | "pdf" | "mock">("home");
+  const [currentPage, setCurrentPage] = useState<"jobs" | "exams" | "pdf" | "mock">("jobs");
   
   // Auth state
   const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
@@ -88,14 +96,30 @@ export default function App() {
   // Search state
   const [searchQuery, setSearchQuery] = useState("");
   
-  // Filter toggle for Home page (Upcoming vs All Exam)
-  const [homeFilter, setHomeFilter] = useState<"upcoming" | "all">("upcoming");
+  // Filter toggle for Job Alerts page ("all" vs "Government" vs "Private")
+  const [jobCategoryFilter, setJobCategoryFilter] = useState<"all" | "Government" | "Private">("all");
+
+  // Filter toggle for Upcoming Exams page
+  const [examFilter, setExamFilter] = useState<
+    "upcoming" | "all" | "UPSC" | "MPSC" | "Railway Exams" | "SSC Exams" | "Banking Exams" | "Defence Exams" | "Clerk Exams" | "State Exams" | "Private Exams"
+  >("upcoming");
+
+  // Filter toggle for Paper PDF page
+  const [pdfFilter, setPdfFilter] = useState<
+    "upcoming" | "all" | "UPSC" | "MPSC" | "Railway Exams" | "SSC Exams" | "Banking Exams" | "Defence Exams" | "Clerk Exams" | "State Exams" | "Private Exams"
+  >("all");
+
+  // Filter toggle for Mock Test page
+  const [mockFilter, setMockFilter] = useState<
+    "upcoming" | "all" | "UPSC" | "MPSC" | "Railway Exams" | "SSC Exams" | "Banking Exams" | "Defence Exams" | "Clerk Exams" | "State Exams" | "Private Exams"
+  >("all");
 
   // Demo banner active slide state
   const [activeBannerIndex, setActiveBannerIndex] = useState(0);
 
   // Interaction Modals
   const [activeExamModal, setActiveExamModal] = useState<ExamDetail | null>(null);
+  const [activeJobModal, setActiveJobModal] = useState<JobAlert | null>(null);
   const [activePdfModal, setActivePdfModal] = useState<PaperPdf | null>(null);
   const [activeTestModal, setActiveTestModal] = useState<MockTest | null>(null);
 
@@ -179,20 +203,56 @@ export default function App() {
     }
   };
 
-  // Filter current content based on search query
-  const filteredExams = upcomingExams.filter((exam) => 
-    exam.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    exam.code.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Filter current content based on search query and filters
+  const filteredJobs = jobAlerts.filter((job) => {
+    const matchesSearch = 
+      job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      job.organization.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      job.postName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      job.qualification.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    if (jobCategoryFilter === "all") return matchesSearch;
+    return matchesSearch && job.category === jobCategoryFilter;
+  });
 
-  const filteredPdfs = paperPdfs.filter((pdf) => 
-    pdf.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    pdf.subject.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredExams = upcomingExams.filter((exam) => {
+    const matchesSearch = 
+      exam.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      exam.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      exam.eligibility.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      exam.category.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    if (examFilter === "all") return matchesSearch;
+    if (examFilter === "upcoming") return matchesSearch && exam.isUpcoming;
+    return matchesSearch && exam.category === examFilter;
+  });
 
-  const filteredTests = mockTests.filter((test) => 
-    test.title.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredPdfs = paperPdfs.filter((pdf) => {
+    const matchesSearch = 
+      pdf.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      pdf.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      pdf.category.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    if (pdfFilter === "all") return matchesSearch;
+    if (pdfFilter === "upcoming") {
+      const isUpcomingCategory = upcomingExams.some(exam => exam.category === pdf.category && exam.isUpcoming);
+      return matchesSearch && isUpcomingCategory;
+    }
+    return matchesSearch && pdf.category === pdfFilter;
+  });
+
+  const filteredTests = mockTests.filter((test) => {
+    const matchesSearch = 
+      test.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      test.category.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    if (mockFilter === "all") return matchesSearch;
+    if (mockFilter === "upcoming") {
+      const isUpcomingCategory = upcomingExams.some(exam => exam.category === test.category && exam.isUpcoming);
+      return matchesSearch && isUpcomingCategory;
+    }
+    return matchesSearch && test.category === mockFilter;
+  });
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans" id="app-root">
@@ -201,7 +261,7 @@ export default function App() {
         <div className="max-w-[1200px] mx-auto px-4 md:px-6 py-3 flex items-center justify-between">
           
           {/* Left: Logo & Stacked Text */}
-          <div className="flex items-center gap-3 cursor-pointer" id="header-logo-container" onClick={() => setCurrentPage("home")}>
+          <div className="flex items-center gap-3 cursor-pointer" id="header-logo-container" onClick={() => setCurrentPage("jobs")}>
             <AppLogo 
               className="h-20 md:h-28 lg:h-32 w-auto object-contain transition-all"
               id="header-logo-img"
@@ -219,37 +279,48 @@ export default function App() {
           {/* Center: Navigation Links */}
           <nav className="hidden md:flex items-center gap-8 text-base font-semibold" id="header-nav">
             <button
-              id="nav-link-home"
-              onClick={() => { setCurrentPage("home"); setSearchQuery(""); }}
-              className={`transition-colors py-2 ${
-                currentPage === "home" 
+              id="nav-link-jobs"
+              onClick={() => { setCurrentPage("jobs"); setSearchQuery(""); }}
+              className={`transition-colors py-2 cursor-pointer ${
+                currentPage === "jobs" 
                   ? "text-[#004aad] font-bold border-b-2 border-[#004aad]" 
                   : "text-gray-600 hover:text-[#004aad]"
               }`}
             >
-              Home
+              Job Alerts
             </button>
             <button
-              id="nav-link-pdf"
-              onClick={() => { setCurrentPage("pdf"); setSearchQuery(""); }}
-              className={`transition-colors py-2 ${
-                currentPage === "pdf" 
+              id="nav-link-exams"
+              onClick={() => { setCurrentPage("exams"); setSearchQuery(""); }}
+              className={`transition-colors py-2 cursor-pointer ${
+                currentPage === "exams" 
                   ? "text-[#004aad] font-bold border-b-2 border-[#004aad]" 
                   : "text-gray-600 hover:text-[#004aad]"
               }`}
             >
-              Paper PDF
+              Upcoming Exams
             </button>
             <button
               id="nav-link-mock"
               onClick={() => { setCurrentPage("mock"); setSearchQuery(""); }}
-              className={`transition-colors py-2 ${
+              className={`transition-colors py-2 cursor-pointer ${
                 currentPage === "mock" 
                   ? "text-[#004aad] font-bold border-b-2 border-[#004aad]" 
                   : "text-gray-600 hover:text-[#004aad]"
               }`}
             >
               Mock Test
+            </button>
+            <button
+              id="nav-link-pdf"
+              onClick={() => { setCurrentPage("pdf"); setSearchQuery(""); }}
+              className={`transition-colors py-2 cursor-pointer ${
+                currentPage === "pdf" 
+                  ? "text-[#004aad] font-bold border-b-2 border-[#004aad]" 
+                  : "text-gray-600 hover:text-[#004aad]"
+              }`}
+            >
+              Paper PDF
             </button>
           </nav>
 
@@ -283,33 +354,42 @@ export default function App() {
         </div>
 
         {/* Mobile Navigation Row */}
-        <div className="flex md:hidden bg-slate-50 border-t border-gray-100 justify-around py-3 font-semibold text-sm">
+        <div className="flex md:hidden bg-slate-50 border-t border-gray-100 justify-around py-3 font-semibold text-xs sm:text-sm">
           <button
-            id="mobile-nav-home"
-            onClick={() => { setCurrentPage("home"); setSearchQuery(""); }}
-            className={`px-3 py-1 rounded-md transition-colors ${
-              currentPage === "home" ? "bg-[#004aad] text-white" : "text-gray-600"
+            id="mobile-nav-jobs"
+            onClick={() => { setCurrentPage("jobs"); setSearchQuery(""); }}
+            className={`px-2.5 py-1 rounded-md transition-colors ${
+              currentPage === "jobs" ? "bg-[#004aad] text-white font-bold" : "text-gray-600"
             }`}
           >
-            Home
+            Job Alerts
           </button>
           <button
-            id="mobile-nav-pdf"
-            onClick={() => { setCurrentPage("pdf"); setSearchQuery(""); }}
-            className={`px-3 py-1 rounded-md transition-colors ${
-              currentPage === "pdf" ? "bg-[#004aad] text-white" : "text-gray-600"
+            id="mobile-nav-exams"
+            onClick={() => { setCurrentPage("exams"); setSearchQuery(""); }}
+            className={`px-2.5 py-1 rounded-md transition-colors ${
+              currentPage === "exams" ? "bg-[#004aad] text-white font-bold" : "text-gray-600"
             }`}
           >
-            Paper PDF
+            Exams
           </button>
           <button
             id="mobile-nav-mock"
             onClick={() => { setCurrentPage("mock"); setSearchQuery(""); }}
-            className={`px-3 py-1 rounded-md transition-colors ${
-              currentPage === "mock" ? "bg-[#004aad] text-white" : "text-gray-600"
+            className={`px-2.5 py-1 rounded-md transition-colors ${
+              currentPage === "mock" ? "bg-[#004aad] text-white font-bold" : "text-gray-600"
             }`}
           >
             Mock Test
+          </button>
+          <button
+            id="mobile-nav-pdf"
+            onClick={() => { setCurrentPage("pdf"); setSearchQuery(""); }}
+            className={`px-2.5 py-1 rounded-md transition-colors ${
+              currentPage === "pdf" ? "bg-[#004aad] text-white font-bold" : "text-gray-600"
+            }`}
+          >
+            Paper PDF
           </button>
         </div>
       </header>
@@ -317,8 +397,8 @@ export default function App() {
       {/* MAIN BODY WRAPPER */}
       <main className="flex-grow max-w-[1200px] w-full mx-auto px-4 md:px-6 py-6 flex flex-col gap-6" id="main-content-wrapper">
         
-        {/* PAGE 1: HOME PAGE ONLY - BLANK DEMO BANNERS */}
-        {currentPage === "home" && (
+        {/* PAGE 1: JOB ALERTS ONLY - BLANK DEMO BANNERS */}
+        {currentPage === "jobs" && (
           <div className="w-full relative group" id="home-demo-banners-wrapper">
             <div 
               className="w-full bg-white border-2 border-[#004aad] rounded-lg p-6 md:p-10 flex flex-col md:flex-row justify-between items-center gap-6 shadow-sm relative overflow-hidden min-h-[180px] md:min-h-[220px] transition-all hover:shadow-md"
@@ -331,12 +411,12 @@ export default function App() {
               <div className="flex flex-col text-left relative z-10 max-w-xl">
                 {/* Dynamic Sliding Text content */}
                 <h2 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight leading-tight uppercase font-sans">
-                  {activeBannerIndex === 0 && "MPSC & UPSC Civil Services Online Mock Prep"}
+                  {activeBannerIndex === 0 && "Active Government & Private Job Alerts 2026"}
                   {activeBannerIndex === 1 && "Authentic PYQs & Solution Key PDF Vault"}
                   {activeBannerIndex === 2 && "Free Live Exam Simulators & Daily Streaks"}
                 </h2>
                 <p className="text-xs md:text-sm text-slate-500 font-medium mt-1.5 max-w-lg leading-relaxed">
-                  {activeBannerIndex === 0 && "Experience real pattern MCQ mock tests with countdown timers, automatic evaluation sheets, and instant explanations."}
+                  {activeBannerIndex === 0 && "Explore immediate recruitment announcements from top boards including MPSC, UPSC, SSC, and premium private companies like TCS and Infosys."}
                   {activeBannerIndex === 1 && "Study high-resolution official reference answer booklets, exam-oriented notes, and syllabus breakdowns curated for top scoring."}
                   {activeBannerIndex === 2 && "Take free test drives anytime, practice without boundaries, track your historic accuracy levels and secure success."}
                 </p>
@@ -344,13 +424,13 @@ export default function App() {
                 <div className="flex gap-2.5 mt-4">
                   <button 
                     onClick={() => {
-                      if (activeBannerIndex === 0) setCurrentPage("mock");
+                      if (activeBannerIndex === 0) setJobCategoryFilter("all");
                       if (activeBannerIndex === 1) setCurrentPage("pdf");
                       if (activeBannerIndex === 2) setCurrentPage("mock");
                     }}
-                    className="bg-[#004aad] hover:bg-[#004aad]/90 text-white font-bold text-xs px-5 py-2.5 rounded shadow-sm transition-all uppercase tracking-wider"
+                    className="bg-[#004aad] hover:bg-[#004aad]/90 text-white font-bold text-xs px-5 py-2.5 rounded shadow-sm transition-all uppercase tracking-wider cursor-pointer"
                   >
-                    {activeBannerIndex === 0 && "Start Free Mock"}
+                    {activeBannerIndex === 0 && "View Job Alerts"}
                     {activeBannerIndex === 1 && "Read PDFs"}
                     {activeBannerIndex === 2 && "Launch Simulator"}
                   </button>
@@ -439,7 +519,15 @@ export default function App() {
               id="search-input-field"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="search Exam"
+              placeholder={
+                currentPage === "jobs" 
+                  ? "Search Job Alerts..." 
+                  : currentPage === "exams" 
+                  ? "Search Exams..." 
+                  : currentPage === "mock" 
+                  ? "Search Mock Tests..." 
+                  : "Search Paper PDFs..."
+              }
               className="w-full h-12 md:h-14 pl-12 pr-6 border-2 border-[#004aad] rounded-full text-center text-base md:text-lg focus:outline-none focus:ring-2 focus:ring-[#004aad]/20 transition-all text-[#004aad] placeholder-[#004aad]/60 font-semibold uppercase tracking-wider"
             />
             {searchQuery && (
@@ -454,31 +542,141 @@ export default function App() {
           </div>
         </div>
 
-        {/* PAGE 1: HOME PAGE ONLY - FILTER TOGGLES */}
-        {currentPage === "home" && (
-          <div className="flex justify-center gap-4 py-2" id="home-filter-toggles">
+        {/* PAGE 1: JOB ALERTS ONLY - CATEGORY TOGGLES */}
+        {currentPage === "jobs" && (
+          <div className="flex justify-center gap-3 md:gap-4 py-2" id="job-filter-toggles">
             <button
-              id="toggle-upcoming-exam"
-              onClick={() => setHomeFilter("upcoming")}
-              className={`px-6 py-2.5 rounded-full font-bold text-sm md:text-base flex items-center gap-2 transition-all shadow-sm ${
-                homeFilter === "upcoming"
-                  ? "bg-[#004aad] text-white hover:bg-[#004aad]/90 scale-105"
+              id="toggle-job-all"
+              onClick={() => setJobCategoryFilter("all")}
+              className={`px-5 py-2.5 rounded-full font-bold text-xs md:text-sm flex items-center gap-1.5 transition-all shadow-sm cursor-pointer ${
+                jobCategoryFilter === "all"
+                  ? "bg-[#004aad] text-white scale-105"
                   : "bg-gray-200 text-gray-700 hover:bg-gray-300"
               }`}
             >
-              Up coming →
+              <Briefcase size={14} />
+              All Jobs
             </button>
             <button
-              id="toggle-all-exam"
-              onClick={() => setHomeFilter("all")}
-              className={`px-6 py-2.5 rounded-full font-bold text-sm md:text-base flex items-center gap-2 transition-all shadow-sm ${
-                homeFilter === "all"
-                  ? "bg-[#004aad] text-white hover:bg-[#004aad]/90 scale-105"
+              id="toggle-job-gov"
+              onClick={() => setJobCategoryFilter("Government")}
+              className={`px-5 py-2.5 rounded-full font-bold text-xs md:text-sm flex items-center gap-1.5 transition-all shadow-sm cursor-pointer ${
+                jobCategoryFilter === "Government"
+                  ? "bg-amber-600 text-white scale-105"
                   : "bg-gray-200 text-gray-700 hover:bg-gray-300"
               }`}
             >
-              All Exam →
+              <Building size={14} />
+              Govt Jobs
             </button>
+            <button
+              id="toggle-job-private"
+              onClick={() => setJobCategoryFilter("Private")}
+              className={`px-5 py-2.5 rounded-full font-bold text-xs md:text-sm flex items-center gap-1.5 transition-all shadow-sm cursor-pointer ${
+                jobCategoryFilter === "Private"
+                  ? "bg-indigo-600 text-white scale-105"
+                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+              }`}
+            >
+              <Users size={14} />
+              Private Jobs
+            </button>
+          </div>
+        )}
+
+        {/* PAGE 2: UPCOMING EXAMS ONLY - FILTER TOGGLES */}
+        {currentPage === "exams" && (
+          <div className="flex flex-wrap justify-center gap-2 md:gap-3 py-4 px-4 bg-slate-100/50 rounded-xl border border-slate-200/60 max-w-5xl mx-auto w-full shadow-xs mb-4" id="exams-filter-toggles">
+            {[
+              { id: "upcoming", label: "Upcoming Exams" },
+              { id: "all", label: "All Exams" },
+              { id: "UPSC", label: "UPSC" },
+              { id: "MPSC", label: "MPSC" },
+              { id: "Railway Exams", label: "Railway Exams" },
+              { id: "SSC Exams", label: "SSC Exams" },
+              { id: "Banking Exams", label: "Banking Exams" },
+              { id: "Defence Exams", label: "Defence Exams" },
+              { id: "Clerk Exams", label: "Clerk Exams" },
+              { id: "State Exams", label: "State Exams" },
+              { id: "Private Exams", label: "Private Exams" }
+            ].map((categoryItem) => (
+              <button
+                key={categoryItem.id}
+                id={`toggle-exam-${categoryItem.id.toLowerCase().replace(/\s+/g, "-")}`}
+                onClick={() => setExamFilter(categoryItem.id as any)}
+                className={`px-4 py-2 rounded-full font-bold text-xs sm:text-sm tracking-wide transition-all shadow-xs cursor-pointer ${
+                  examFilter === categoryItem.id
+                    ? "bg-[#004aad] text-white ring-2 ring-[#004aad]/20 scale-105"
+                    : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:text-[#004aad] hover:border-[#004aad]/30"
+                }`}
+              >
+                {categoryItem.label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* PAGE 3: PAPER PDF - FILTER TOGGLES */}
+        {currentPage === "pdf" && (
+          <div className="flex flex-wrap justify-center gap-2 md:gap-3 py-4 px-4 bg-slate-100/50 rounded-xl border border-slate-200/60 max-w-5xl mx-auto w-full shadow-xs mb-4" id="pdf-filter-toggles">
+            {[
+              { id: "upcoming", label: "Upcoming Exams" },
+              { id: "all", label: "All Exams" },
+              { id: "UPSC", label: "UPSC" },
+              { id: "MPSC", label: "MPSC" },
+              { id: "Railway Exams", label: "Railway Exams" },
+              { id: "SSC Exams", label: "SSC Exams" },
+              { id: "Banking Exams", label: "Banking Exams" },
+              { id: "Defence Exams", label: "Defence Exams" },
+              { id: "Clerk Exams", label: "Clerk Exams" },
+              { id: "State Exams", label: "State Exams" },
+              { id: "Private Exams", label: "Private Exams" }
+            ].map((categoryItem) => (
+              <button
+                key={categoryItem.id}
+                id={`toggle-pdf-${categoryItem.id.toLowerCase().replace(/\s+/g, "-")}`}
+                onClick={() => setPdfFilter(categoryItem.id as any)}
+                className={`px-4 py-2 rounded-full font-bold text-xs sm:text-sm tracking-wide transition-all shadow-xs cursor-pointer ${
+                  pdfFilter === categoryItem.id
+                    ? "bg-[#004aad] text-white ring-2 ring-[#004aad]/20 scale-105"
+                    : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:text-[#004aad] hover:border-[#004aad]/30"
+                }`}
+              >
+                {categoryItem.label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* PAGE 4: MOCK TEST - FILTER TOGGLES */}
+        {currentPage === "mock" && (
+          <div className="flex flex-wrap justify-center gap-2 md:gap-3 py-4 px-4 bg-slate-100/50 rounded-xl border border-slate-200/60 max-w-5xl mx-auto w-full shadow-xs mb-4" id="mock-filter-toggles">
+            {[
+              { id: "upcoming", label: "Upcoming Exams" },
+              { id: "all", label: "All Exams" },
+              { id: "UPSC", label: "UPSC" },
+              { id: "MPSC", label: "MPSC" },
+              { id: "Railway Exams", label: "Railway Exams" },
+              { id: "SSC Exams", label: "SSC Exams" },
+              { id: "Banking Exams", label: "Banking Exams" },
+              { id: "Defence Exams", label: "Defence Exams" },
+              { id: "Clerk Exams", label: "Clerk Exams" },
+              { id: "State Exams", label: "State Exams" },
+              { id: "Private Exams", label: "Private Exams" }
+            ].map((categoryItem) => (
+              <button
+                key={categoryItem.id}
+                id={`toggle-mock-${categoryItem.id.toLowerCase().replace(/\s+/g, "-")}`}
+                onClick={() => setMockFilter(categoryItem.id as any)}
+                className={`px-4 py-2 rounded-full font-bold text-xs sm:text-sm tracking-wide transition-all shadow-xs cursor-pointer ${
+                  mockFilter === categoryItem.id
+                    ? "bg-[#004aad] text-white ring-2 ring-[#004aad]/20 scale-105"
+                    : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:text-[#004aad] hover:border-[#004aad]/30"
+                }`}
+              >
+                {categoryItem.label}
+              </button>
+            ))}
           </div>
         )}
 
@@ -491,7 +689,13 @@ export default function App() {
               className="bg-[#004aad] text-white px-6 py-3 font-bold uppercase tracking-wider text-sm md:text-base rounded-t-md"
               id="active-tab-indicator"
             >
-              {currentPage === "home" ? "Up Coming Exam" : currentPage === "pdf" ? "PYQ PAPER PDF" : "Mock TEST"}
+              {currentPage === "jobs" 
+                ? `${jobCategoryFilter === "all" ? "All" : jobCategoryFilter} Job Alerts` 
+                : currentPage === "exams" 
+                ? `${examFilter === "upcoming" ? "Upcoming" : examFilter === "all" ? "All" : examFilter} Exams` 
+                : currentPage === "pdf" 
+                ? `${pdfFilter === "upcoming" ? "Upcoming" : pdfFilter === "all" ? "All" : pdfFilter} PYQ PDFs` 
+                : `${mockFilter === "upcoming" ? "Upcoming" : mockFilter === "all" ? "All" : mockFilter} Mock Tests`}
             </div>
             {/* Thick blue line spanning full width */}
             <div className="w-full h-1 bg-[#004aad]" id="thick-blue-divider-line" />
@@ -500,8 +704,64 @@ export default function App() {
           {/* Cards Stack Container */}
           <div className="flex flex-col gap-4 mt-6" id="cards-stack-container">
             {/* INTERACTIVE LIVE VIEW: Rich academic exam items */}
-            {currentPage === "home" ? (
-              // Home page upcoming exams list
+            {currentPage === "jobs" ? (
+              // Job alerts list
+              filteredJobs.length > 0 ? (
+                filteredJobs.map((job) => (
+                  <div
+                    key={job.id}
+                    id={`job-card-${job.id}`}
+                    className="w-full bg-white border border-[#004aad] rounded-lg shadow-sm hover:shadow-md hover:border-2 transition-all p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 cursor-pointer group"
+                    onClick={() => setActiveJobModal(job)}
+                  >
+                    <div className="flex flex-col text-left">
+                      <div className="flex items-center gap-2.5 mb-1.5 flex-wrap">
+                        <span className={`font-bold text-[10px] md:text-xs px-2.5 py-0.5 rounded-full tracking-wider uppercase border ${
+                          job.category === "Government"
+                            ? "bg-amber-50 text-amber-600 border-amber-100"
+                            : "bg-indigo-50 text-indigo-600 border-indigo-100"
+                        }`}>
+                          {job.category}
+                        </span>
+                        <span className="font-mono text-xs text-slate-500 font-bold tracking-wider">
+                          {job.organization}
+                        </span>
+                      </div>
+                      <h3 className="text-base md:text-lg font-bold text-slate-900 group-hover:text-[#004aad] transition-colors leading-snug">
+                        {job.title}
+                      </h3>
+                      <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs text-slate-500">
+                        <span className="flex items-center gap-1">
+                          <Briefcase size={12} className="text-[#004aad]" />
+                          {job.postName}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Users size={12} className="text-[#004aad]" />
+                          {job.vacancies}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <GraduationCap size={12} className="text-[#004aad]" />
+                          {job.qualification}
+                        </span>
+                        <span className="flex items-center gap-1 text-red-600 font-semibold">
+                          <Clock size={12} />
+                          Last Date: {job.lastDate}
+                        </span>
+                      </div>
+                    </div>
+                    <button className="self-end md:self-auto bg-[#004aad]/10 text-[#004aad] group-hover:bg-[#004aad] group-hover:text-white px-5 py-2 rounded-lg font-bold text-xs md:text-sm tracking-wide transition-all flex items-center gap-2">
+                      View Details <ArrowRight size={14} />
+                    </button>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-12 bg-white border border-[#004aad]/20 rounded-lg">
+                  <p className="text-slate-500 font-medium">No job alerts matched your search.</p>
+                  <button onClick={() => setSearchQuery("")} className="mt-2 text-[#004aad] font-bold underline">Clear filter</button>
+                </div>
+              )
+            ) : currentPage === "exams" ? (
+              // Upcoming exams list
               filteredExams.length > 0 ? (
                 filteredExams.map((exam, index) => (
                   <div
@@ -512,8 +772,13 @@ export default function App() {
                   >
                     <div className="flex flex-col text-left">
                       <div className="flex items-center gap-2.5 mb-1.5 flex-wrap">
-                        <span className="bg-red-50 text-red-600 font-bold text-[10px] md:text-xs px-2.5 py-0.5 rounded-full tracking-wider uppercase border border-red-100">
-                          Upcoming
+                        {exam.isUpcoming && (
+                          <span className="bg-red-50 text-red-600 font-bold text-[10px] md:text-xs px-2.5 py-0.5 rounded-full tracking-wider uppercase border border-red-100">
+                            Upcoming
+                          </span>
+                        )}
+                        <span className="bg-blue-50 text-[#004aad] font-bold text-[10px] md:text-xs px-2.5 py-0.5 rounded-full tracking-wider uppercase border border-blue-100">
+                          {exam.category}
                         </span>
                         <span className="font-mono text-xs text-slate-500 font-bold tracking-wider">
                           {exam.code}
@@ -534,8 +799,8 @@ export default function App() {
                 ))
               ) : (
                 <div className="text-center py-12 bg-white border border-[#004aad]/20 rounded-lg">
-                  <p className="text-slate-500 font-medium">No upcoming exams matched your search.</p>
-                  <button onClick={() => setSearchQuery("")} className="mt-2 text-[#004aad] font-bold underline">Clear filter</button>
+                  <p className="text-slate-500 font-medium">No exams matched your search or category selection.</p>
+                  <button onClick={() => { setSearchQuery(""); setExamFilter("all"); }} className="mt-2 text-[#004aad] font-bold underline cursor-pointer">Reset search & filters</button>
                 </div>
               )
             ) : currentPage === "pdf" ? (
@@ -553,6 +818,9 @@ export default function App() {
                   >
                     <div className="flex flex-col text-left">
                       <div className="flex items-center gap-2.5 mb-1.5 flex-wrap">
+                        <span className="bg-blue-50 text-[#004aad] font-bold text-[10px] md:text-xs px-2.5 py-0.5 rounded-full tracking-wider uppercase border border-blue-100">
+                          {pdf.category}
+                        </span>
                         <span className="bg-[#004aad]/10 text-[#004aad] font-bold text-[10px] md:text-xs px-2.5 py-0.5 rounded-full uppercase">
                           {pdf.subject}
                         </span>
@@ -580,8 +848,8 @@ export default function App() {
                 ))
               ) : (
                 <div className="text-center py-12 bg-white border border-[#004aad]/20 rounded-lg">
-                  <p className="text-slate-500 font-medium">No question paper PDFs matched your search.</p>
-                  <button onClick={() => setSearchQuery("")} className="mt-2 text-[#004aad] font-bold underline">Clear filter</button>
+                  <p className="text-slate-500 font-medium">No question paper PDFs matched your search or category selection.</p>
+                  <button onClick={() => { setSearchQuery(""); setPdfFilter("all"); }} className="mt-2 text-[#004aad] font-bold underline cursor-pointer">Reset search & filters</button>
                 </div>
               )
             ) : (
@@ -596,6 +864,9 @@ export default function App() {
                   >
                     <div className="flex flex-col text-left">
                       <div className="flex items-center gap-2.5 mb-1.5 flex-wrap">
+                        <span className="bg-blue-50 text-[#004aad] font-bold text-[10px] md:text-xs px-2.5 py-0.5 rounded-full tracking-wider uppercase border border-blue-100">
+                          {test.category}
+                        </span>
                         <span className="bg-indigo-50 text-indigo-600 font-bold text-[10px] md:text-xs px-2.5 py-0.5 rounded-full uppercase border border-indigo-100">
                           Free Simulator
                         </span>
@@ -618,8 +889,8 @@ export default function App() {
                 ))
               ) : (
                 <div className="text-center py-12 bg-white border border-[#004aad]/20 rounded-lg">
-                  <p className="text-slate-500 font-medium">No mock tests matched your search.</p>
-                  <button onClick={() => setSearchQuery("")} className="mt-2 text-[#004aad] font-bold underline">Clear filter</button>
+                  <p className="text-slate-500 font-medium">No mock tests matched your search or category selection.</p>
+                  <button onClick={() => { setSearchQuery(""); setMockFilter("all"); }} className="mt-2 text-[#004aad] font-bold underline cursor-pointer">Reset search & filters</button>
                 </div>
               )
             )}
@@ -707,6 +978,114 @@ export default function App() {
                   id="btn-start-matching-mock"
                 >
                   Attempt Mock Test <ArrowRight size={14} />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* INTERACTIVE MODAL: JOB ALERTS DETAIL MODAL */}
+      {activeJobModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in" id="job-detail-modal-overlay">
+          <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto border border-gray-200" id="job-detail-modal">
+            <div className={`p-5 sticky top-0 flex justify-between items-center z-10 text-white ${
+              activeJobModal.category === "Government" ? "bg-amber-600" : "bg-indigo-600"
+            }`}>
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider bg-white/20 px-2 py-0.5 rounded-full">
+                  {activeJobModal.category} Job Alert
+                </span>
+                <h3 className="text-lg font-extrabold mt-1">{activeJobModal.title}</h3>
+              </div>
+              <button 
+                onClick={() => setActiveJobModal(null)} 
+                className="text-white/80 hover:text-white hover:bg-white/10 rounded-full w-8 h-8 flex items-center justify-center text-lg transition-colors font-bold cursor-pointer"
+                id="close-job-modal"
+              >
+                ×
+              </button>
+            </div>
+            
+            <div className="p-6 flex flex-col gap-5 text-left text-sm md:text-base">
+              {/* Quick Specs Grid */}
+              <div className="grid grid-cols-2 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                <div>
+                  <h4 className="font-bold text-[10px] text-slate-400 uppercase tracking-wider">Recruiter</h4>
+                  <p className="font-semibold text-slate-800 text-xs sm:text-sm mt-0.5">{activeJobModal.organization}</p>
+                </div>
+                <div>
+                  <h4 className="font-bold text-[10px] text-slate-400 uppercase tracking-wider">Post Name</h4>
+                  <p className="font-semibold text-slate-800 text-xs sm:text-sm mt-0.5">{activeJobModal.postName}</p>
+                </div>
+                <div>
+                  <h4 className="font-bold text-[10px] text-slate-400 uppercase tracking-wider">Total Vacancies</h4>
+                  <p className="font-semibold text-slate-800 text-xs sm:text-sm mt-0.5">{activeJobModal.vacancies}</p>
+                </div>
+                <div>
+                  <h4 className="font-bold text-[10px] text-slate-400 uppercase tracking-wider">Scale of Pay</h4>
+                  <p className="font-semibold text-slate-800 text-xs sm:text-sm mt-0.5 flex items-center gap-1">
+                    <DollarSign size={12} className="text-slate-400" />
+                    {activeJobModal.salary}
+                  </p>
+                </div>
+                <div>
+                  <h4 className="font-bold text-[10px] text-slate-400 uppercase tracking-wider">Required Qualification</h4>
+                  <p className="font-semibold text-slate-800 text-xs sm:text-sm mt-0.5">{activeJobModal.qualification}</p>
+                </div>
+                <div>
+                  <h4 className="font-bold text-[10px] text-slate-400 uppercase tracking-wider">Last Date to Apply</h4>
+                  <p className="font-bold text-red-600 text-xs sm:text-sm mt-0.5 flex items-center gap-1">
+                    <Clock size={12} />
+                    {activeJobModal.lastDate}
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <h4 className="font-bold text-xs text-[#004aad] uppercase tracking-wider mb-1.5">Job Overview</h4>
+                <p className="text-slate-700 leading-relaxed bg-blue-50/40 p-3 rounded-lg border border-blue-100">
+                  {activeJobModal.details}
+                </p>
+              </div>
+
+              <div>
+                <h4 className="font-bold text-xs text-[#004aad] uppercase tracking-wider mb-1.5">Eligibility & Requirements</h4>
+                <div className="text-slate-700 space-y-1 bg-slate-50 p-3 rounded-lg border border-slate-100">
+                  <p>• <strong>Age Limit:</strong> 18 - 38 years (relaxation applicable for category students).</p>
+                  <p>• <strong>Education:</strong> Must possess relevant degrees corresponding to {activeJobModal.qualification}.</p>
+                  <p>• <strong>Experience:</strong> Freshers are eligible unless mentioned in the notification briefing.</p>
+                </div>
+              </div>
+
+              <div className="border-t border-gray-100 pt-5 mt-2 flex flex-col sm:flex-row justify-between gap-3">
+                <a
+                  href={activeJobModal.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-grow text-center border-2 border-[#004aad] text-[#004aad] hover:bg-blue-50 font-bold py-2.5 rounded-lg transition-all text-xs md:text-sm flex items-center justify-center gap-1.5 cursor-pointer"
+                  id="job-link-official-site"
+                >
+                  Apply Online <ExternalLink size={14} />
+                </a>
+                <button
+                  onClick={() => {
+                    setActiveJobModal(null);
+                    // Match a relevant Mock Test or go to Mock Test page
+                    const matchingTest = mockTests.find(t => 
+                      t.title.toLowerCase().includes(activeJobModal.organization.toLowerCase()) ||
+                      t.title.toLowerCase().includes(activeJobModal.title.substring(0, 5).toLowerCase())
+                    );
+                    if (matchingTest) {
+                      handleStartTest(matchingTest);
+                    } else {
+                      setCurrentPage("mock");
+                    }
+                  }}
+                  className="flex-grow text-center bg-[#004aad] hover:bg-[#004aad]/90 text-white font-bold py-2.5 rounded-lg transition-all text-xs md:text-sm flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
+                  id="job-btn-prep-mock"
+                >
+                  Attempt Prep Mock <ArrowRight size={14} />
                 </button>
               </div>
             </div>
