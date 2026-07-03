@@ -305,6 +305,49 @@ export const paperPdfs: PaperPdf[] = [
       "Q2. Shivaji Maharaj was crowned at which of the following forts?\n(A) Raigad Fort\n(B) Shivneri Fort\n(C) Sinhagad Fort\n(D) Pratapgad Fort"
     ],
     category: "MPSC"
+  },
+  {
+    id: "pdf-7",
+    title: "MPSC Rajyaseva GS Paper II (CSAT) PYQ (2025)",
+    year: "2025",
+    subject: "CSAT & Aptitude",
+    questionsCount: 80,
+    fileSize: "2.1 MB",
+    downloadUrl: "#",
+    pages: [
+      "MPSC State Service Prelims CSAT Question Paper - 2025",
+      "Q1. Find the missing number: 12, 15, 21, 30, 42, ?\n(A) 57\n(B) 55\n(C) 54\n(D) 56\n\nQ2. A can complete a work in 15 days, and B can complete the same work in 10 days. Together they work for 4 days, then A leaves. How many days will B take to complete the remaining work?\n(A) 3.3 days\n(B) 4 days\n(C) 2 days\n(D) 3 days"
+    ],
+    category: "MPSC"
+  },
+  {
+    id: "pdf-8",
+    title: "UPSC GS Paper II (CSAT) Solved PYQ (2025)",
+    year: "2025",
+    subject: "CSAT & Aptitude",
+    questionsCount: 80,
+    fileSize: "2.9 MB",
+    downloadUrl: "#",
+    pages: [
+      "UPSC Civil Services Prelims CSAT Solved Paper - 2025",
+      "Q1. In a class of 45 students, 30 play Cricket, 20 play Football, and 10 play both. How many students play neither game?\n(A) 5\n(B) 10\n(C) 15\n(D) 0",
+      "Q2. A clock is set right at 5 a.m. The clock loses 16 minutes in 24 hours. What will be the true time when the clock indicates 10 p.m. on the 4th day?\n(A) 11 p.m.\n(B) 10 p.m.\n(C) 10:30 p.m.\n(D) 12 midnight"
+    ],
+    category: "UPSC"
+  },
+  {
+    id: "pdf-9",
+    title: "UPSC Civil Services GS Paper I PYQ (2024)",
+    year: "2024",
+    subject: "General Studies",
+    questionsCount: 100,
+    fileSize: "3.5 MB",
+    downloadUrl: "#",
+    pages: [
+      "UPSC Civil Services GS Paper I Official PYQ - 2024",
+      "Q1. Which of the following statements about the G20 is/are correct?\n1. It was established in 1999.\n2. India held the presidency in 2023.\nSelect the correct answer:\n(A) 1 only\n(B) 2 only\n(C) Both 1 and 2\n(D) Neither 1 nor 2"
+    ],
+    category: "UPSC"
   }
 ];
 
@@ -447,6 +490,154 @@ export const mockTests: MockTest[] = [
       }
     ],
     category: "Defence Exams"
+  },
+  {
+    id: "test-7",
+    title: "MPSC State Services Prelims Mock - GS Paper I",
+    durationMinutes: 10,
+    questions: [
+      {
+        id: 1,
+        question: "Which of the following forts of Maharashtra was also known as 'Fort of Lion'?",
+        options: ["Sinhagad", "Raigad", "Pratapgad", "Torna"],
+        correctAnswer: 0,
+        explanation: "Sinhagad was originally called Kondhana, and was renamed Sinhagad (Lion's Fort) in honor of Tanaji Malusare's sacrifice."
+      }
+    ],
+    category: "MPSC"
+  },
+  {
+    id: "test-8",
+    title: "MPSC CSAT Speed Practice Simulator",
+    durationMinutes: 10,
+    questions: [
+      {
+        id: 1,
+        question: "In how many ways can the letters of the word 'MPSC' be arranged?",
+        options: ["24", "12", "6", "120"],
+        correctAnswer: 0,
+        explanation: "Since 'MPSC' has 4 distinct letters, the number of arrangements is 4! = 4 x 3 x 2 x 1 = 24."
+      }
+    ],
+    category: "MPSC"
+  },
+  {
+    id: "test-9",
+    title: "UPSC Civil Services Prelims Mock - CSAT Mock 2",
+    durationMinutes: 10,
+    questions: [
+      {
+        id: 1,
+        question: "A sum of money doubles itself in 10 years at simple interest. What is the rate of interest per annum?",
+        options: ["10%", "5%", "8%", "12%"],
+        correctAnswer: 0,
+        explanation: "Double the money means interest equals principal (I = P). Since I = P*R*T/100, P = P*R*10/100 => R = 10%."
+      }
+    ],
+    category: "UPSC"
+  },
+  {
+    id: "test-10",
+    title: "UPSC GS Core Revision Simulator 2026",
+    durationMinutes: 10,
+    questions: [
+      {
+        id: 1,
+        question: "Which of the following indices is published by the World Economic Forum?",
+        options: ["Global Gender Gap Report", "Ease of Doing Business", "Human Development Index", "World Press Freedom Index"],
+        correctAnswer: 0,
+        explanation: "The Global Gender Gap Report is published annually by the World Economic Forum."
+      }
+    ],
+    category: "UPSC"
+  }
+];
+
+export interface PremiumExamPack {
+  id: string;
+  title: string;
+  examCode: string;
+  category: string;
+  description: string;
+  price: number;
+  features: string[];
+  mockCount: number;
+  pdfCount: number;
+  highlight?: boolean;
+}
+
+export const premiumPacks: PremiumExamPack[] = [
+  {
+    id: "pack-upsc",
+    title: "UPSC Prelims Super-60 Ultimate Cracker",
+    examCode: "UPSC-2026",
+    category: "UPSC",
+    description: "Specialized high-yield simulator designed to crack General Studies Paper-1 & CSAT with full solutions, trend analysis and standard-setting static/dynamic coverage.",
+    price: 80,
+    features: [
+      "25 Full-Length CSAT & GS-1 Standard Mock Papers",
+      "35 Topical Subject-wise Curated Question Banks",
+      "Premium Trend-Mapped Answer Explanation PDFs",
+      "Direct Rank Predictor & Detailed Analytics Index",
+      "Exclusive Current Affairs 2026 Bullet Companion"
+    ],
+    mockCount: 60,
+    pdfCount: 20,
+    highlight: true
+  },
+  {
+    id: "pack-mpsc",
+    title: "MPSC-Rajyaseva Target Crack Pack 2026",
+    examCode: "MPSC-2026",
+    category: "MPSC",
+    description: "A highly tailored Marathi & English medium package focusing on Maharashtra Geography, History, and Administration alongside standard NCERT/State Board topics.",
+    price: 80,
+    features: [
+      "15 Comprehensive Rajyaseva GS-1 Mock Exams",
+      "15 High-Yield CSAT Practice Workbooks",
+      "Satyashodhak Samaj & Social Reformers Special PDFs",
+      "Maharashtra Administrative Code & PYQ Answer keys",
+      "Full Bilingual Explanations (Marathi & English)"
+    ],
+    mockCount: 30,
+    pdfCount: 15,
+    highlight: false
+  },
+  {
+    id: "pack-ssc",
+    title: "SSC CGL High-Yield Tier-1 Simulator Pack",
+    examCode: "SSC-CGL-2026",
+    category: "SSC Exams",
+    description: "Optimized for raw speed and mental accuracy. High-frequency formula-sheets, shortcut tricks, and standard Tier-1 syllabus simulators for extreme accuracy.",
+    price: 80,
+    features: [
+      "40 Tier-1 Live Speed Simulator Mock Tests",
+      "English Vocabulary & Grammar Prep Vault",
+      "Quantitative Aptitude Shortcuts & Video-Style PDFs",
+      "Reasoning Ability Advanced Puzzles Handbook",
+      "Interactive Multi-attempt Timing Analytics dashboard"
+    ],
+    mockCount: 40,
+    pdfCount: 12,
+    highlight: false
+  },
+  {
+    id: "pack-banking",
+    title: "IBPS PO Prelims Booster Masterclass",
+    examCode: "IBPS-PO-2026",
+    category: "Banking Exams",
+    description: "Custom-built for maximum throughput in English, Quant, and Reasoning, matching the latest IBPS difficulty spike and sectional timing pressures.",
+    price: 80,
+    features: [
+      "20 Sector-focused Sectional Speed Runs",
+      "15 Full-length IBPS PO Real-Pattern Mocks",
+      "High-Level Puzzles & Seating Arrangement Guides",
+      "Data Interpretation (DI) Special Crack Workbooks",
+      "Full solutions with Speed-optimized Shortcuts"
+    ],
+    mockCount: 35,
+    pdfCount: 10,
+    highlight: false
   }
 ];
 

@@ -1,0 +1,72 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Default-deny gate
+    match /{document=**} {
+      allow read, write: if false;
+    }
+    
+    // Global utility primitives
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+    
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // USER PURCHASES SCHEMA AND VAL
+    function isValidPurchaseDoc(data) {
+      return data.userId is string 
+        && data.userId.size() <= 128
+        && data.hasPortalPass is bool
+        && data.unlockedPacks is list
+        && (data.unlockedPacks.size() == 0 || (data.unlockedPacks.size() > 0 && data.unlockedPacks[0] is string));
+    }
+
+    match /user_purchases/{userId} {
+      allow read: if isOwner(userId);
+      
+      allow create: if isOwner(userId) 
+        && isValidId(userId)
+        && isValidPurchaseDoc(request.resource.data)
+        && request.resource.data.userId == request.auth.uid;
+        
+      allow update: if isOwner(userId)
+        && isValidPurchaseDoc(request.resource.data)
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.userId == resource.data.userId;
+    }
+
+    // TEST ATTEMPTS SCHEMA AND VAL
+    function isValidTestAttempt(data) {
+      return data.userId is string
+        && data.userId.size() <= 128
+        && data.testId is string
+        && data.testId.size() <= 128
+        && data.testTitle is string
+        && data.testTitle.size() <= 200
+        && data.score is int
+        && data.totalQuestions is int
+        && data.timestamp is int;
+    }
+
+    match /test_attempts/{attemptId} {
+      // Secure listing constraint
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow get: if isSignedIn() && resource.data.userId == request.auth.uid;
+      
+      allow create: if isSignedIn()
+        && isValidId(attemptId)
+        && isValidTestAttempt(request.resource.data)
+        && request.resource.data.userId == request.auth.uid;
+        
+      allow update, delete: if false; // Attempts are immutable
+    }
+  }
+}

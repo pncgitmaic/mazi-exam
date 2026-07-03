@@ -23,7 +23,13 @@ import {
   Calendar,
   DollarSign,
   MapPin,
-  Users
+  Users,
+  Star,
+  Sparkles,
+  Lock,
+  Unlock,
+  CreditCard,
+  ShieldAlert
 } from "lucide-react";
 import { 
   upcomingExams, 
@@ -33,9 +39,11 @@ import {
   PaperPdf, 
   MockTest,
   jobAlerts,
-  JobAlert
+  JobAlert,
+  premiumPacks,
+  PremiumExamPack
 } from "./data";
-import { auth, db, onAuthStateChanged, collection, addDoc, User as FirebaseUser } from "./firebase";
+import { auth, db, onAuthStateChanged, collection, addDoc, doc, getDoc, setDoc, User as FirebaseUser } from "./firebase";
 import { AuthModal } from "./components/AuthModal";
 
 function AppLogo({ className, id, isFooter = false }: { className?: string; id?: string; isFooter?: boolean }) {
@@ -80,11 +88,32 @@ function AppLogo({ className, id, isFooter = false }: { className?: string; id?:
 
 export default function App() {
   // Navigation State
-  const [currentPage, setCurrentPage] = useState<"jobs" | "exams" | "pdf" | "mock">("jobs");
+  const [currentPage, setCurrentPage] = useState<"jobs" | "exams" | "pdf" | "mock" | "selection">("jobs");
   
   // Auth state
   const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
   const [authModalOpen, setAuthModalOpen] = useState(false);
+
+  // Premium Purchases and Subscriptions state
+  const [hasPortalPass, setHasPortalPass] = useState<boolean>(false);
+  const [unlockedPacks, setUnlockedPacks] = useState<string[]>([]);
+  const [loadingPurchases, setLoadingPurchases] = useState<boolean>(false);
+
+  // Payment Simulator states
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [paymentType, setPaymentType] = useState<"portal_pass" | "exam_pack" | "selection_pass">("portal_pass");
+  const [paymentTargetPack, setPaymentTargetPack] = useState<PremiumExamPack | null>(null);
+  const [paymentPending, setPaymentPending] = useState(false);
+  const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<"card" | "upi">("card");
+  const [upiId, setUpiId] = useState("");
+  const [cardNumber, setCardNumber] = useState("");
+  const [cardExpiry, setCardExpiry] = useState("");
+  const [cardCvv, setCardCvv] = useState("");
+  const [paymentAmount, setPaymentAmount] = useState(50);
+
+  // Unlocked premium pack details dialog
+  const [unlockedDetailsModal, setUnlockedDetailsModal] = useState<PremiumExamPack | null>(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -92,6 +121,122 @@ export default function App() {
     });
     return () => unsubscribe();
   }, []);
+
+  // Sync user purchases from Firestore with LocalStorage fallback
+  useEffect(() => {
+    if (currentUser) {
+      setLoadingPurchases(true);
+      const docRef = doc(db, "user_purchases", currentUser.uid);
+      getDoc(docRef)
+        .then((docSnap) => {
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            setHasPortalPass(!!data.hasPortalPass);
+            setUnlockedPacks(data.unlockedPacks || []);
+          } else {
+            // Check local storage for fallback/instant sync
+            const localPass = localStorage.getItem(`portalPass_${currentUser.uid}`);
+            const localPacks = localStorage.getItem(`unlockedPacks_${currentUser.uid}`);
+            const initPass = localPass === "true";
+            const initPacks = localPacks ? JSON.parse(localPacks) : [];
+            setHasPortalPass(initPass);
+            setUnlockedPacks(initPacks);
+            
+            // Auto create document in firestore so it stays synced
+            setDoc(docRef, {
+              userId: currentUser.uid,
+              hasPortalPass: initPass,
+              unlockedPacks: initPacks
+            }).catch(e => console.error("Error creating purchases document:", e));
+          }
+        })
+        .catch((err) => {
+          console.error("Error fetching purchases:", err);
+          // Fallback to local storage
+          const localPass = localStorage.getItem(`portalPass_${currentUser.uid}`);
+          const localPacks = localStorage.getItem(`unlockedPacks_${currentUser.uid}`);
+          setHasPortalPass(localPass === "true");
+          setUnlockedPacks(localPacks ? JSON.parse(localPacks) : []);
+        })
+        .finally(() => {
+          setLoadingPurchases(false);
+        });
+    } else {
+      setHasPortalPass(false);
+      setUnlockedPacks([]);
+    }
+  }, [currentUser]);
+
+  // Handle transaction success
+  const handlePurchaseSuccess = async (type: "portal_pass" | "exam_pack" | "selection_pass", packId?: string) => {
+    if (!currentUser) return;
+    
+    let nextPass = hasPortalPass;
+    let nextPacks = [...unlockedPacks];
+    
+    if (type === "portal_pass") {
+      nextPass = true;
+      localStorage.setItem(`portalPass_${currentUser.uid}`, "true");
+    } else if (type === "selection_pass") {
+      if (!nextPacks.includes("all_selection_pass")) {
+        nextPacks.push("all_selection_pass");
+      }
+      // Add all individual premium packs for total compatibility
+      ["pack-upsc", "pack-mpsc", "pack-ssc", "pack-banking"].forEach(id => {
+        if (!nextPacks.includes(id)) {
+          nextPacks.push(id);
+        }
+      });
+      localStorage.setItem(`unlockedPacks_${currentUser.uid}`, JSON.stringify(nextPacks));
+    } else if (type === "exam_pack" && packId) {
+      if (!nextPacks.includes(packId)) {
+        nextPacks.push(packId);
+      }
+      localStorage.setItem(`unlockedPacks_${currentUser.uid}`, JSON.stringify(nextPacks));
+    }
+    
+    // Update state instantly
+    setHasPortalPass(nextPass);
+    setUnlockedPacks(nextPacks);
+    
+    // Save to Firestore
+    try {
+      const docRef = doc(db, "user_purchases", currentUser.uid);
+      await setDoc(docRef, {
+        userId: currentUser.uid,
+        hasPortalPass: nextPass,
+        unlockedPacks: nextPacks
+      });
+      console.log("Purchases saved to Firestore successfully!");
+    } catch (err) {
+      console.error("Error saving purchases to Firestore:", err);
+    }
+  };
+
+  // Limit checks (Free users can access the first 2 items of any category)
+  const isPdfAccessible = (pdf: PaperPdf) => {
+    if (hasPortalPass || unlockedPacks.includes("all_selection_pass") || unlockedPacks.includes("selection_pass")) return true;
+    
+    // Find all PDFs of the same category
+    const categoryPdfs = paperPdfs.filter(p => p.category === pdf.category);
+    // Find index of this PDF within that category
+    const index = categoryPdfs.findIndex(p => p.id === pdf.id);
+    
+    // If index is less than 2, it's free
+    return index < 2;
+  };
+
+  const isTestAccessible = (test: MockTest) => {
+    if (hasPortalPass || unlockedPacks.includes("all_selection_pass") || unlockedPacks.includes("selection_pass")) return true;
+    
+    // Find all tests of the same category
+    const categoryTests = mockTests.filter(t => t.category === test.category);
+    // Find index of this test within that category
+    const index = categoryTests.findIndex(t => t.id === test.id);
+    
+    // If index is less than 2, it's free
+    return index < 2;
+  };
   
   // Search state
   const [searchQuery, setSearchQuery] = useState("");
@@ -277,7 +422,7 @@ export default function App() {
           </div>
 
           {/* Center: Navigation Links */}
-          <nav className="hidden md:flex items-center gap-8 text-base font-semibold" id="header-nav">
+          <nav className="hidden md:flex items-center gap-6 text-base font-semibold" id="header-nav">
             <button
               id="nav-link-jobs"
               onClick={() => { setCurrentPage("jobs"); setSearchQuery(""); }}
@@ -322,10 +467,29 @@ export default function App() {
             >
               Paper PDF
             </button>
+            <button
+              id="nav-link-selection"
+              onClick={() => { setCurrentPage("selection"); setSearchQuery(""); }}
+              className={`transition-all py-2 cursor-pointer flex items-center gap-1 bg-gradient-to-r from-amber-500 to-yellow-500 text-transparent bg-clip-text hover:brightness-110 font-black border-b-2 ${
+                currentPage === "selection" 
+                  ? "border-amber-500" 
+                  : "border-transparent"
+              }`}
+            >
+              <Star size={16} className="text-amber-500 animate-pulse fill-amber-400" />
+              Get Selection
+            </button>
           </nav>
 
           {/* Right: User profile / Sign In */}
           <div className="flex items-center gap-4" id="header-right-container">
+            {currentUser && hasPortalPass && (
+              <div className="hidden lg:flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-amber-500/10 to-yellow-500/10 border border-amber-400/30 text-amber-600 rounded-full text-xs font-black tracking-wider uppercase animate-pulse">
+                <Sparkles size={12} className="fill-amber-400 text-amber-500" />
+                <span>Premium Pass Active</span>
+              </div>
+            )}
+            
             {currentUser ? (
               <button 
                 onClick={() => setAuthModalOpen(true)}
@@ -358,16 +522,16 @@ export default function App() {
           <button
             id="mobile-nav-jobs"
             onClick={() => { setCurrentPage("jobs"); setSearchQuery(""); }}
-            className={`px-2.5 py-1 rounded-md transition-colors ${
+            className={`px-2 py-1 rounded-md transition-colors ${
               currentPage === "jobs" ? "bg-[#004aad] text-white font-bold" : "text-gray-600"
             }`}
           >
-            Job Alerts
+            Jobs
           </button>
           <button
             id="mobile-nav-exams"
             onClick={() => { setCurrentPage("exams"); setSearchQuery(""); }}
-            className={`px-2.5 py-1 rounded-md transition-colors ${
+            className={`px-2 py-1 rounded-md transition-colors ${
               currentPage === "exams" ? "bg-[#004aad] text-white font-bold" : "text-gray-600"
             }`}
           >
@@ -376,20 +540,32 @@ export default function App() {
           <button
             id="mobile-nav-mock"
             onClick={() => { setCurrentPage("mock"); setSearchQuery(""); }}
-            className={`px-2.5 py-1 rounded-md transition-colors ${
+            className={`px-2 py-1 rounded-md transition-colors ${
               currentPage === "mock" ? "bg-[#004aad] text-white font-bold" : "text-gray-600"
             }`}
           >
-            Mock Test
+            Mocks
           </button>
           <button
             id="mobile-nav-pdf"
             onClick={() => { setCurrentPage("pdf"); setSearchQuery(""); }}
-            className={`px-2.5 py-1 rounded-md transition-colors ${
+            className={`px-2 py-1 rounded-md transition-colors ${
               currentPage === "pdf" ? "bg-[#004aad] text-white font-bold" : "text-gray-600"
             }`}
           >
-            Paper PDF
+            PDFs
+          </button>
+          <button
+            id="mobile-nav-selection"
+            onClick={() => { setCurrentPage("selection"); setSearchQuery(""); }}
+            className={`px-2 py-1 rounded-md transition-all flex items-center gap-0.5 font-bold ${
+              currentPage === "selection" 
+                ? "bg-gradient-to-r from-amber-500 to-amber-600 text-white" 
+                : "text-amber-600 hover:bg-amber-50"
+            }`}
+          >
+            <Star size={11} className="fill-current" />
+            Selection
           </button>
         </div>
       </header>
@@ -806,93 +982,417 @@ export default function App() {
             ) : currentPage === "pdf" ? (
               // Paper PDF previous year papers
               filteredPdfs.length > 0 ? (
-                filteredPdfs.map((pdf) => (
-                  <div
-                    key={pdf.id}
-                    id={`pdf-card-${pdf.id}`}
-                    className="w-full bg-white border border-[#004aad] rounded-lg shadow-sm hover:shadow-md hover:border-2 transition-all p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 cursor-pointer group"
-                    onClick={() => {
-                      setActivePdfModal(pdf);
-                      setPdfCurrentPage(0);
-                    }}
-                  >
-                    <div className="flex flex-col text-left">
-                      <div className="flex items-center gap-2.5 mb-1.5 flex-wrap">
-                        <span className="bg-blue-50 text-[#004aad] font-bold text-[10px] md:text-xs px-2.5 py-0.5 rounded-full tracking-wider uppercase border border-blue-100">
-                          {pdf.category}
-                        </span>
-                        <span className="bg-[#004aad]/10 text-[#004aad] font-bold text-[10px] md:text-xs px-2.5 py-0.5 rounded-full uppercase">
-                          {pdf.subject}
-                        </span>
-                        <span className="bg-emerald-50 text-emerald-600 font-bold text-[10px] md:text-xs px-2.5 py-0.5 rounded-full uppercase border border-emerald-100">
-                          Year {pdf.year}
-                        </span>
-                        <span className="font-mono text-xs text-slate-400 font-medium">
-                          {pdf.fileSize}
-                        </span>
+                filteredPdfs.map((pdf) => {
+                  // Check if this PDF is a restricted item (index >= 2 in its category)
+                  const categoryPdfs = paperPdfs.filter(p => p.category === pdf.category);
+                  const pdfIndexInCategory = categoryPdfs.findIndex(p => p.id === pdf.id);
+                  const isPremiumPdf = pdfIndexInCategory >= 2;
+                  const accessible = hasPortalPass || !isPremiumPdf;
+
+                  return (
+                    <div
+                      key={pdf.id}
+                      id={`pdf-card-${pdf.id}`}
+                      className={`w-full bg-white border rounded-lg shadow-sm hover:shadow-md hover:border-2 transition-all p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 cursor-pointer group ${
+                        accessible ? "border-[#004aad]" : "border-slate-300 bg-slate-50/50"
+                      }`}
+                      onClick={() => {
+                        if (!accessible) {
+                          if (!currentUser) {
+                            setAuthModalOpen(true);
+                          } else {
+                            setPaymentType("portal_pass");
+                            setPaymentTargetPack(null);
+                            setPaymentAmount(50);
+                            setPaymentSuccess(false);
+                            setPaymentPending(false);
+                            setPaymentModalOpen(true);
+                          }
+                        } else {
+                          setActivePdfModal(pdf);
+                          setPdfCurrentPage(0);
+                        }
+                      }}
+                    >
+                      <div className="flex flex-col text-left">
+                        <div className="flex items-center gap-2.5 mb-1.5 flex-wrap">
+                          <span className="bg-blue-50 text-[#004aad] font-bold text-[10px] md:text-xs px-2.5 py-0.5 rounded-full tracking-wider uppercase border border-blue-100">
+                            {pdf.category}
+                          </span>
+                          <span className="bg-[#004aad]/10 text-[#004aad] font-bold text-[10px] md:text-xs px-2.5 py-0.5 rounded-full uppercase">
+                            {pdf.subject}
+                          </span>
+                          <span className="bg-emerald-50 text-emerald-600 font-bold text-[10px] md:text-xs px-2.5 py-0.5 rounded-full uppercase border border-emerald-100">
+                            Year {pdf.year}
+                          </span>
+                          <span className="font-mono text-xs text-slate-400 font-medium mr-1">
+                            {pdf.fileSize}
+                          </span>
+                          
+                          {/* Access Badges */}
+                          {isPremiumPdf ? (
+                            accessible ? (
+                              <span className="bg-emerald-50 text-emerald-600 font-extrabold text-[10px] md:text-xs px-2.5 py-0.5 rounded-full uppercase border border-emerald-200 flex items-center gap-1 animate-pulse">
+                                <Unlock size={10} className="fill-current text-emerald-500" /> Pass Unlocked
+                              </span>
+                            ) : (
+                              <span className="bg-amber-50 text-amber-600 font-extrabold text-[10px] md:text-xs px-2.5 py-0.5 rounded-full uppercase border border-amber-200 flex items-center gap-1">
+                                <Lock size={10} className="text-amber-500" /> Pass Premium
+                              </span>
+                            )
+                          ) : (
+                            <span className="bg-slate-100 text-slate-600 font-extrabold text-[10px] md:text-xs px-2.5 py-0.5 rounded-full uppercase border border-slate-200 flex items-center gap-1">
+                              Free Sample
+                            </span>
+                          )}
+                        </div>
+                        <h3 className="text-base md:text-lg font-bold text-slate-900 group-hover:text-[#004aad] transition-colors leading-snug">
+                          {pdf.title}
+                        </h3>
+                        <p className="text-xs text-slate-500 mt-1 flex items-center gap-1.5">
+                          <FileText size={14} className="text-[#004aad]" />
+                          Includes {pdf.questionsCount} authentic previous year questions
+                        </p>
                       </div>
-                      <h3 className="text-base md:text-lg font-bold text-slate-900 group-hover:text-[#004aad] transition-colors leading-snug">
-                        {pdf.title}
-                      </h3>
-                      <p className="text-xs text-slate-500 mt-1 flex items-center gap-1.5">
-                        <FileText size={14} className="text-[#004aad]" />
-                        Includes {pdf.questionsCount} authentic previous year questions
-                      </p>
+                      <div className="self-end md:self-auto flex items-center gap-2">
+                        <button className="bg-[#004aad]/10 text-[#004aad] group-hover:bg-[#004aad] group-hover:text-white px-5 py-2 rounded-lg font-bold text-xs md:text-sm tracking-wide transition-all flex items-center gap-2">
+                          {accessible ? "Read Document" : "Unlock Document"} <BookOpen size={14} />
+                        </button>
+                      </div>
                     </div>
-                    <div className="self-end md:self-auto flex items-center gap-2">
-                      <button className="bg-[#004aad]/10 text-[#004aad] group-hover:bg-[#004aad] group-hover:text-white px-5 py-2 rounded-lg font-bold text-xs md:text-sm tracking-wide transition-all flex items-center gap-2">
-                        Read Document <BookOpen size={14} />
-                      </button>
-                    </div>
-                  </div>
-                ))
+                  );
+                })
               ) : (
                 <div className="text-center py-12 bg-white border border-[#004aad]/20 rounded-lg">
                   <p className="text-slate-500 font-medium">No question paper PDFs matched your search or category selection.</p>
                   <button onClick={() => { setSearchQuery(""); setPdfFilter("all"); }} className="mt-2 text-[#004aad] font-bold underline cursor-pointer">Reset search & filters</button>
                 </div>
               )
-            ) : (
+            ) : currentPage === "mock" ? (
               // Mock test list
               filteredTests.length > 0 ? (
-                filteredTests.map((test) => (
-                  <div
-                    key={test.id}
-                    id={`test-card-${test.id}`}
-                    className="w-full bg-white border border-[#004aad] rounded-lg shadow-sm hover:shadow-md hover:border-2 transition-all p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 cursor-pointer group"
-                    onClick={() => handleStartTest(test)}
-                  >
-                    <div className="flex flex-col text-left">
-                      <div className="flex items-center gap-2.5 mb-1.5 flex-wrap">
-                        <span className="bg-blue-50 text-[#004aad] font-bold text-[10px] md:text-xs px-2.5 py-0.5 rounded-full tracking-wider uppercase border border-blue-100">
-                          {test.category}
-                        </span>
-                        <span className="bg-indigo-50 text-indigo-600 font-bold text-[10px] md:text-xs px-2.5 py-0.5 rounded-full uppercase border border-indigo-100">
-                          Free Simulator
-                        </span>
-                        <span className="bg-slate-100 text-slate-700 font-bold text-[10px] md:text-xs px-2.5 py-0.5 rounded-full flex items-center gap-1">
-                          <Clock size={12} /> {test.durationMinutes} Mins
-                        </span>
+                filteredTests.map((test) => {
+                  // Check if this Test is a restricted item (index >= 2 in its category)
+                  const categoryTests = mockTests.filter(t => t.category === test.category);
+                  const testIndexInCategory = categoryTests.findIndex(t => t.id === test.id);
+                  const isPremiumTest = testIndexInCategory >= 2;
+                  const accessible = hasPortalPass || !isPremiumTest;
+
+                  return (
+                    <div
+                      key={test.id}
+                      id={`test-card-${test.id}`}
+                      className={`w-full bg-white border rounded-lg shadow-sm hover:shadow-md hover:border-2 transition-all p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 cursor-pointer group ${
+                        accessible ? "border-[#004aad]" : "border-slate-300 bg-slate-50/50"
+                      }`}
+                      onClick={() => {
+                        if (!accessible) {
+                          if (!currentUser) {
+                            setAuthModalOpen(true);
+                          } else {
+                            setPaymentType("portal_pass");
+                            setPaymentTargetPack(null);
+                            setPaymentAmount(50);
+                            setPaymentSuccess(false);
+                            setPaymentPending(false);
+                            setPaymentModalOpen(true);
+                          }
+                        } else {
+                          handleStartTest(test);
+                        }
+                      }}
+                    >
+                      <div className="flex flex-col text-left">
+                        <div className="flex items-center gap-2.5 mb-1.5 flex-wrap">
+                          <span className="bg-blue-50 text-[#004aad] font-bold text-[10px] md:text-xs px-2.5 py-0.5 rounded-full tracking-wider uppercase border border-blue-100">
+                            {test.category}
+                          </span>
+                          <span className="bg-slate-100 text-slate-700 font-bold text-[10px] md:text-xs px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                            <Clock size={12} /> {test.durationMinutes} Mins
+                          </span>
+
+                          {/* Access Badges */}
+                          {isPremiumTest ? (
+                            accessible ? (
+                              <span className="bg-emerald-50 text-emerald-600 font-extrabold text-[10px] md:text-xs px-2.5 py-0.5 rounded-full uppercase border border-emerald-200 flex items-center gap-1 animate-pulse">
+                                <Unlock size={10} className="fill-current text-emerald-500" /> Pass Unlocked
+                              </span>
+                            ) : (
+                              <span className="bg-amber-50 text-amber-600 font-extrabold text-[10px] md:text-xs px-2.5 py-0.5 rounded-full uppercase border border-amber-200 flex items-center gap-1">
+                                <Lock size={10} className="text-amber-500" /> Pass Premium
+                              </span>
+                            )
+                          ) : (
+                            <span className="bg-slate-100 text-slate-600 font-extrabold text-[10px] md:text-xs px-2.5 py-0.5 rounded-full uppercase border border-slate-200 flex items-center gap-1">
+                              Free Simulator
+                            </span>
+                          )}
+                        </div>
+                        <h3 className="text-base md:text-lg font-bold text-slate-900 group-hover:text-[#004aad] transition-colors leading-snug">
+                          {test.title}
+                        </h3>
+                        <p className="text-xs text-slate-500 mt-1 flex items-center gap-1.5">
+                          <Trophy size={14} className="text-[#004aad]" />
+                          Contains {test.questions.length} real pattern multiple-choice questions
+                        </p>
                       </div>
-                      <h3 className="text-base md:text-lg font-bold text-slate-900 group-hover:text-[#004aad] transition-colors leading-snug">
-                        {test.title}
-                      </h3>
-                      <p className="text-xs text-slate-500 mt-1 flex items-center gap-1.5">
-                        <Trophy size={14} className="text-[#004aad]" />
-                        Contains {test.questions.length} real pattern multiple-choice questions
-                      </p>
+                      <button className="self-end md:self-auto bg-[#004aad] text-white hover:bg-[#004aad]/90 px-6 py-2.5 rounded-lg font-bold text-xs md:text-sm tracking-wide transition-all flex items-center gap-1.5 shadow-sm">
+                        {accessible ? "Start Free Mock" : "Unlock Mock Test"} <PlayIcon />
+                      </button>
                     </div>
-                    <button className="self-end md:self-auto bg-[#004aad] text-white hover:bg-[#004aad]/90 px-6 py-2.5 rounded-lg font-bold text-xs md:text-sm tracking-wide transition-all flex items-center gap-1.5 shadow-sm">
-                      Start Free Mock <PlayIcon />
-                    </button>
-                  </div>
-                ))
+                  );
+                })
               ) : (
                 <div className="text-center py-12 bg-white border border-[#004aad]/20 rounded-lg">
                   <p className="text-slate-500 font-medium">No mock tests matched your search or category selection.</p>
                   <button onClick={() => { setSearchQuery(""); setMockFilter("all"); }} className="mt-2 text-[#004aad] font-bold underline cursor-pointer">Reset search & filters</button>
                 </div>
               )
+            ) : (
+              // GET SELECTION - GOLDEN OBSIDIAN PREMIUM PORTAL
+              <div className="w-full bg-[#0d121f] text-slate-100 rounded-2xl border border-amber-500/20 shadow-2xl p-6 md:p-10 relative overflow-hidden flex flex-col gap-8 text-left" id="get-selection-premium-page">
+                {/* Visual glow backdrop elements */}
+                <div className="absolute top-0 right-0 w-80 h-80 bg-amber-500/5 rounded-full blur-[100px] pointer-events-none" />
+                <div className="absolute bottom-0 left-0 w-80 h-80 bg-yellow-500/5 rounded-full blur-[100px] pointer-events-none" />
+
+                {/* Header Title Hero */}
+                <div className="border-b border-amber-500/20 pb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-6" id="selection-hero-header">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="bg-gradient-to-r from-amber-500/10 to-yellow-500/10 border border-amber-400/30 text-amber-400 font-extrabold text-[10px] md:text-xs px-3.5 py-1 rounded-full uppercase tracking-widest flex items-center gap-1">
+                        <Sparkles size={12} className="text-amber-400 animate-pulse fill-amber-400" />
+                        Premium success hub
+                      </span>
+                    </div>
+                    <h2 className="text-2xl md:text-4xl font-black text-white leading-tight uppercase font-sans tracking-tight">
+                      GET SELECTION <span className="bg-gradient-to-r from-amber-400 to-yellow-500 text-transparent bg-clip-text">PREMIUM PORTAL</span>
+                    </h2>
+                    <p className="text-xs md:text-sm text-slate-400 mt-2 leading-relaxed max-w-2xl font-medium">
+                      One-time subscription of ₹80/month unlocks ALL premium mock tests, CSAT/GS speed simulators, trend-mapped answer booklets, and current affairs keys.
+                    </p>
+                  </div>
+
+                  {/* Golden Guarantee Badge */}
+                  <div className="bg-gradient-to-br from-slate-900 to-[#111827] border border-amber-500/40 rounded-2xl p-5 flex items-center gap-4 shadow-xl max-w-sm shrink-0 self-stretch md:self-auto" id="golden-guarantee-badge">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-400 to-yellow-500 text-slate-950 flex items-center justify-center font-black text-xl shadow-md">
+                      ₹
+                    </div>
+                    <div>
+                      <p className="text-xs font-black uppercase text-amber-400 tracking-wider">All-Access Model</p>
+                      <h4 className="text-lg font-black text-white">₹80 Monthly Fee</h4>
+                      <p className="text-[10px] text-slate-400 leading-tight">A single fee of ₹80 monthly unlocks all premium mock tests and cracker resources on this page.</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Central Premium Subscription Banner */}
+                {!(unlockedPacks.includes("all_selection_pass") || unlockedPacks.includes("selection_pass")) ? (
+                  <div className="bg-gradient-to-r from-amber-500/10 via-yellow-500/15 to-amber-500/10 border-2 border-amber-400/40 rounded-2xl p-6 md:p-8 flex flex-col md:flex-row justify-between items-center gap-6 shadow-xl relative overflow-hidden" id="central-subscription-banner">
+                    {/* Background glow effects */}
+                    <div className="absolute -right-20 -top-20 w-40 h-40 bg-amber-400/20 rounded-full blur-3xl pointer-events-none" />
+                    <div className="absolute -left-20 -bottom-20 w-40 h-40 bg-yellow-400/20 rounded-full blur-3xl pointer-events-none" />
+                    
+                    <div className="flex items-start gap-4 text-left">
+                      <div className="w-14 h-14 rounded-2xl bg-amber-400/10 border border-amber-400/30 text-amber-400 flex items-center justify-center shrink-0 shadow-inner">
+                        <Sparkles size={28} className="animate-pulse text-amber-400 fill-amber-400/20" />
+                      </div>
+                      <div>
+                        <span className="bg-amber-400 text-slate-950 font-black text-[9px] uppercase tracking-wider px-2 py-0.5 rounded">BEST VALUE</span>
+                        <h3 className="text-xl md:text-2xl font-black text-white mt-1 leading-tight uppercase">MaziExam Premium All-Access Pass</h3>
+                        <p className="text-xs text-slate-300 mt-1 leading-relaxed max-w-xl">
+                          Subscribe once and immediately unlock all current and future premium packs listed below. Instant access to speed runs, PYQ answer keys, and target current affairs.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row items-center gap-4 shrink-0 w-full md:w-auto">
+                      <div className="text-center md:text-right">
+                        <p className="text-[10px] uppercase tracking-widest text-slate-400 font-bold">Monthly Subscription</p>
+                        <div className="flex items-baseline justify-center md:justify-end gap-1 mt-0.5">
+                          <span className="text-3xl font-black text-white font-mono">₹80</span>
+                          <span className="text-xs text-slate-400 font-bold uppercase">/ month</span>
+                        </div>
+                        <p className="text-[9px] text-slate-500 font-medium">Cancel subscription anytime</p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!currentUser) {
+                            setAuthModalOpen(true);
+                          } else {
+                            setPaymentType("selection_pass");
+                            setPaymentTargetPack(null);
+                            setPaymentAmount(80);
+                            setPaymentSuccess(false);
+                            setPaymentPending(false);
+                            setPaymentModalOpen(true);
+                          }
+                        }}
+                        className="w-full sm:w-auto px-8 py-4 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:brightness-110 text-slate-950 font-black tracking-wider uppercase text-xs shadow-lg shadow-amber-500/10 hover:shadow-amber-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
+                        id="buy-premium-pass-cta"
+                      >
+                        <CreditCard size={16} />
+                        Get All-Access Pass
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-gradient-to-r from-emerald-500/10 via-teal-500/15 to-emerald-500/10 border border-emerald-500/30 rounded-2xl p-5 flex flex-col sm:flex-row justify-between items-center gap-4 text-left shadow-lg" id="unlocked-subscription-banner">
+                    <div className="flex items-center gap-3.5">
+                      <div className="w-10 h-10 rounded-xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/20 animate-pulse">
+                        <CheckCircle2 size={20} className="fill-emerald-500/10" />
+                      </div>
+                      <div>
+                        <h4 className="text-base font-black text-emerald-400 uppercase tracking-tight">🏆 All-Access Subscription is ACTIVE!</h4>
+                        <p className="text-xs text-slate-300 leading-normal">
+                          You have premium access to every exam pack, speed run, and expert-written key.
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-black uppercase bg-emerald-500/20 text-emerald-300 px-3 py-1.5 rounded-full border border-emerald-500/30 shrink-0">
+                      Auto-Renewal: ₹80/mo (sandbox)
+                    </span>
+                  </div>
+                )}
+
+                {/* Core Cards Grid */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6" id="premium-crackers-grid">
+                  {premiumPacks.map((pack) => {
+                    const isUnlocked = unlockedPacks.includes("all_selection_pass") || unlockedPacks.includes("selection_pass") || unlockedPacks.includes(pack.id);
+                    return (
+                      <div
+                        key={pack.id}
+                        id={`premium-pack-card-${pack.id}`}
+                        className={`bg-gradient-to-br from-slate-900/95 to-slate-950/98 border ${
+                          pack.highlight ? "border-amber-400/40 shadow-amber-500/5 ring-1 ring-amber-400/20" : "border-slate-800"
+                        } rounded-xl p-6 hover:border-amber-400/60 hover:scale-[1.01] transition-all duration-300 flex flex-col justify-between relative group shadow-lg`}
+                      >
+                        {/* Shimmer overlay for highlighted */}
+                        {pack.highlight && (
+                          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-amber-400 to-transparent animate-pulse" />
+                        )}
+
+                        <div>
+                          {/* Badges */}
+                          <div className="flex items-center gap-2 mb-4 flex-wrap">
+                            <span className="bg-gradient-to-r from-amber-500/10 to-yellow-500/10 border border-amber-400/20 text-amber-400 font-extrabold text-[10px] px-2.5 py-0.5 rounded-full tracking-wider uppercase">
+                              {pack.category} Cracker
+                            </span>
+                            <span className="bg-slate-950 text-slate-400 font-mono text-[10px] px-2.5 py-0.5 rounded-full uppercase border border-slate-800">
+                              Target Exam: {pack.examCode}
+                            </span>
+                            {isUnlocked ? (
+                              <span className="bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-extrabold text-[10px] px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1">
+                                <Unlock size={10} className="fill-current" /> Active & Unlocked
+                              </span>
+                            ) : (
+                              <span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 font-extrabold text-[10px] px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1">
+                                <Lock size={10} /> Locked
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Title */}
+                          <h3 className="text-xl font-extrabold text-white tracking-tight leading-snug group-hover:text-amber-400 transition-colors">
+                            {pack.title}
+                          </h3>
+
+                          {/* Description */}
+                          <p className="text-xs text-slate-400 mt-2.5 leading-relaxed font-medium">
+                            {pack.description}
+                          </p>
+
+                          {/* Stats Indicator */}
+                          <div className="grid grid-cols-2 gap-3 mt-4 py-3 border-y border-slate-800/60 text-xs">
+                            <div className="text-left">
+                              <p className="text-slate-500 uppercase tracking-widest text-[9px] font-bold">Premium Mocks</p>
+                              <p className="text-sm font-black text-slate-200 mt-0.5">{pack.mockCount} Solved Papers</p>
+                            </div>
+                            <div className="text-left">
+                              <p className="text-slate-500 uppercase tracking-widest text-[9px] font-bold">Curated PDFs</p>
+                              <p className="text-sm font-black text-slate-200 mt-0.5">{pack.pdfCount} Curated Files</p>
+                            </div>
+                          </div>
+
+                          {/* Bullet Points */}
+                          <ul className="mt-4 space-y-2 text-left">
+                            {pack.features.map((feature, fIdx) => (
+                              <li key={fIdx} className="flex items-start gap-2 text-xs text-slate-300 font-sans">
+                                <span className="text-amber-400 font-bold mt-0.5">★</span>
+                                <span className="font-medium">{feature}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+
+                        {/* Simplified card footer - No redundant price blocks on every card */}
+                        <div className="mt-6 pt-5 border-t border-slate-800 flex items-center justify-between gap-4">
+                          <span className="text-xs font-bold text-slate-400 flex items-center gap-1.5">
+                            {isUnlocked ? (
+                              <span className="text-emerald-400 flex items-center gap-1 font-mono uppercase tracking-wider text-[10px]">
+                                <Unlock size={12} className="fill-emerald-400/10" /> Included
+                              </span>
+                            ) : (
+                              <span className="text-slate-500 flex items-center gap-1 font-mono uppercase tracking-wider text-[10px]">
+                                <Lock size={12} /> Needs Pass
+                              </span>
+                            )}
+                          </span>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (!currentUser) {
+                                setAuthModalOpen(true);
+                              } else if (isUnlocked) {
+                                setUnlockedDetailsModal(pack);
+                              } else {
+                                setPaymentType("selection_pass");
+                                setPaymentTargetPack(null);
+                                setPaymentAmount(80);
+                                setPaymentSuccess(false);
+                                setPaymentPending(false);
+                                setPaymentModalOpen(true);
+                              }
+                            }}
+                            className={`px-5 py-2.5 rounded-lg font-black text-xs tracking-wider uppercase transition-all duration-200 active:scale-[0.98] flex items-center gap-1.5 cursor-pointer ${
+                              isUnlocked
+                                ? "bg-slate-800 hover:bg-slate-700 text-slate-100"
+                                : "bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 hover:brightness-110"
+                            }`}
+                          >
+                            {isUnlocked ? (
+                              <>
+                                <Unlock size={12} className="fill-current" />
+                                Study Now
+                              </>
+                            ) : (
+                              <>
+                                <CreditCard size={12} />
+                                Unlock Pass
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Callout Info Section */}
+                <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 flex items-start gap-4 text-left" id="selection-callout-panel">
+                  <div className="w-10 h-10 rounded-full bg-amber-500/10 border border-amber-400/20 text-amber-400 flex items-center justify-center shrink-0">
+                    🏆
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-white uppercase tracking-wider">Aspirant Selection Oath</h4>
+                    <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                      Our special targets are strictly structured to remove clutter. No useless videos, no endless forums. Only top-tier, high-probability pattern simulators and precise answer booklets written by selected civil service officers.
+                    </p>
+                  </div>
+                </div>
+              </div>
             )}
           </div>
         </div>
@@ -1565,6 +2065,305 @@ export default function App() {
         onClose={() => setAuthModalOpen(false)} 
         currentUser={currentUser} 
       />
+
+      {/* PAYMENT GATEWAY SIMULATOR MODAL */}
+      {paymentModalOpen && (
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fade-in" id="payment-simulator-modal-overlay">
+          <div className="bg-slate-900 border border-amber-500/30 text-slate-100 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden" id="payment-simulator-modal">
+            
+            {/* Header */}
+            <div className="bg-gradient-to-r from-amber-500 to-yellow-500 p-5 text-slate-950 font-bold flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <CreditCard size={20} className="text-slate-950 animate-bounce" />
+                <div>
+                  <h3 className="text-lg font-black tracking-tight uppercase leading-tight">Secured Payment Gateway</h3>
+                  <p className="text-[10px] font-bold opacity-80 uppercase tracking-widest">MaziExam Sandbox Simulator</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setPaymentModalOpen(false)} 
+                className="text-slate-950 hover:bg-black/10 rounded-full w-8 h-8 flex items-center justify-center text-xl transition-colors font-bold"
+                id="close-payment-modal"
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Main Content */}
+            <div className="p-6">
+              {!paymentSuccess ? (
+                <div>
+                  {/* Summary */}
+                  <div className="bg-slate-950/80 rounded-xl p-4 border border-slate-800 mb-5 text-left">
+                    <p className="text-xs text-slate-400 font-mono uppercase tracking-wider">Item Details</p>
+                    <h4 className="text-base font-black text-amber-400 mt-1">
+                      {paymentType === "portal_pass" 
+                        ? "🏆 All-Access Standard Portal Pass" 
+                        : paymentType === "selection_pass"
+                        ? "🏆 Get Selection Premium All-Access Pass"
+                        : `💎 Premium Exam Cracker: ${paymentTargetPack?.title}`}
+                    </h4>
+                    <p className="text-xs text-slate-400 mt-1">
+                      {paymentType === "portal_pass" 
+                        ? "Unlocks all standard mock tests and paper PDFs across all categories." 
+                        : paymentType === "selection_pass"
+                        ? "Unlocks ALL premium cracker packs, including 150+ high-yield speed mocks, detailed PYQ solutions, and current affairs keys."
+                        : "Includes 25+ Full mocks, topic tests, standard PYQ explanations and current affairs keys."}
+                    </p>
+                    <div className="flex justify-between items-center border-t border-slate-800 mt-3 pt-3">
+                      <span className="text-sm font-semibold text-slate-300">Amount to Pay:</span>
+                      <span className="text-2xl font-black text-white font-mono font-sans">₹{paymentAmount}</span>
+                    </div>
+                  </div>
+
+                  {paymentPending ? (
+                    /* Spinner Loader */
+                    <div className="py-8 flex flex-col items-center justify-center text-center">
+                      <div className="w-16 h-16 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mb-4" />
+                      <h4 className="text-lg font-bold text-amber-400 animate-pulse">Contacting Banking API...</h4>
+                      <p className="text-xs text-slate-400 mt-1 px-4">Processing standard mock validation parameters. Please do not close or refresh this tab.</p>
+                    </div>
+                  ) : (
+                    /* Inputs Form */
+                    <div className="flex flex-col text-left">
+                      {/* Tabs */}
+                      <div className="flex bg-slate-950 rounded-lg p-1 mb-4 border border-slate-800">
+                        <button
+                          type="button"
+                          onClick={() => setPaymentMethod("card")}
+                          className={`flex-1 py-2 rounded-md font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 ${
+                            paymentMethod === "card" ? "bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950" : "text-slate-400 hover:text-slate-100"
+                          }`}
+                        >
+                          <CreditCard size={14} />
+                          Debit / Credit Card
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPaymentMethod("upi")}
+                          className={`flex-1 py-2 rounded-md font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 ${
+                            paymentMethod === "upi" ? "bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950" : "text-slate-400 hover:text-slate-100"
+                          }`}
+                        >
+                          <svg className="w-3.5 h-3.5 fill-current text-current" viewBox="0 0 24 24">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
+                          </svg>
+                          UPI (Paytm/GPay)
+                        </button>
+                      </div>
+
+                      {paymentMethod === "card" ? (
+                        <div className="space-y-4 font-sans">
+                          <div>
+                            <label className="text-xs font-bold text-slate-400 uppercase tracking-widest block mb-1">Card Number</label>
+                            <input
+                              type="text"
+                              maxLength={19}
+                              value={cardNumber}
+                              onChange={(e) => {
+                                const v = e.target.value.replace(/\D/g, '').replace(/(.{4})/g, '$1 ').trim();
+                                setCardNumber(v);
+                              }}
+                              placeholder="4111 2222 3333 4444"
+                              className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-sm font-mono text-white focus:outline-none focus:border-amber-400"
+                              required
+                            />
+                          </div>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <label className="text-xs font-bold text-slate-400 uppercase tracking-widest block mb-1">Expiry Date</label>
+                              <input
+                                type="text"
+                                maxLength={5}
+                                value={cardExpiry}
+                                onChange={(e) => {
+                                  let v = e.target.value.replace(/\D/g, '');
+                                  if (v.length > 2) {
+                                    v = v.substring(0, 2) + "/" + v.substring(2, 4);
+                                  }
+                                  setCardExpiry(v);
+                                }}
+                                placeholder="MM/YY"
+                                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-sm font-mono text-white focus:outline-none focus:border-amber-400"
+                                required
+                              />
+                            </div>
+                            <div>
+                              <label className="text-xs font-bold text-slate-400 uppercase tracking-widest block mb-1">CVV</label>
+                              <input
+                                type="password"
+                                maxLength={3}
+                                value={cardCvv}
+                                onChange={(e) => setCardCvv(e.target.value.replace(/\D/g, ''))}
+                                placeholder="123"
+                                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-sm font-mono text-white focus:outline-none focus:border-amber-400"
+                                required
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div>
+                          <label className="text-xs font-bold text-slate-400 uppercase tracking-widest block mb-1 font-sans">UPI ID (VPA)</label>
+                          <input
+                            type="text"
+                            value={upiId}
+                            onChange={(e) => setUpiId(e.target.value)}
+                            placeholder="aspirant@okaxis"
+                            className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-sm font-mono text-white focus:outline-none focus:border-amber-400"
+                            required
+                          />
+                        </div>
+                      )}
+
+                      {/* Submit */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPaymentPending(true);
+                          setTimeout(() => {
+                            setPaymentPending(false);
+                            setPaymentSuccess(true);
+                            handlePurchaseSuccess(paymentType, paymentTargetPack?.id);
+                          }, 1800);
+                        }}
+                        className="w-full mt-6 py-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 font-black tracking-wider uppercase text-sm shadow-md hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                      >
+                        <ShieldAlert size={16} />
+                        Proceed to Pay ₹{paymentAmount}
+                      </button>
+
+                      <p className="text-[10px] text-slate-500 mt-4 text-center font-mono">
+                        🔒 SSL Secured 256-Bit Sandbox Transaction
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* Success screen */
+                <div className="py-8 flex flex-col items-center justify-center text-center font-sans">
+                  <div className="w-20 h-20 bg-emerald-500/15 border-2 border-emerald-500 text-emerald-400 rounded-full flex items-center justify-center mb-4 animate-bounce">
+                    <CheckCircle2 size={44} className="fill-emerald-500 text-slate-900" />
+                  </div>
+                  <h4 className="text-2xl font-black text-emerald-400 tracking-tight uppercase">Payment Success!</h4>
+                  <p className="text-sm text-slate-300 font-bold mt-2 px-4">
+                    Transaction of ₹{paymentAmount} Completed Successfully.
+                  </p>
+                  <p className="text-xs text-slate-400 mt-1 px-4 leading-relaxed">
+                    Your account has been instantly upgraded. Premium features are unlocked in real-time across this browser.
+                  </p>
+
+                  <button
+                    type="button"
+                    onClick={() => setPaymentModalOpen(false)}
+                    className="w-full mt-8 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-black tracking-wider uppercase text-sm hover:brightness-110 transition-all shadow-md"
+                  >
+                    🚀 Start Premium Access
+                  </button>
+                </div>
+              )}
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* UNLOCKED PREMIUM PACK DETAILS VIEW */}
+      {unlockedDetailsModal && (
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fade-in" id="unlocked-details-modal-overlay">
+          <div className="bg-slate-900 border-2 border-amber-400/50 text-slate-100 rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden" id="unlocked-details-modal">
+            <div className="bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 p-5 font-bold flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <Star size={20} className="fill-slate-950 text-slate-950" />
+                <h3 className="text-base font-black uppercase tracking-tight">Premium Pack Active</h3>
+              </div>
+              <button 
+                onClick={() => setUnlockedDetailsModal(null)}
+                className="text-slate-950 hover:bg-black/10 rounded-full w-8 h-8 flex items-center justify-center text-xl font-black"
+                id="close-unlocked-details-modal"
+              >
+                ×
+              </button>
+            </div>
+            
+            <div className="p-6 text-left">
+              <span className="text-[10px] font-black uppercase tracking-wider bg-amber-400/20 text-amber-300 border border-amber-400/30 px-2 py-0.5 rounded-full">
+                {unlockedDetailsModal.category} • {unlockedDetailsModal.examCode}
+              </span>
+              <h4 className="text-xl font-black text-white mt-2 leading-tight">
+                {unlockedDetailsModal.title}
+              </h4>
+              <p className="text-xs text-slate-400 mt-2 leading-relaxed">
+                {unlockedDetailsModal.description}
+              </p>
+              
+              <div className="border-t border-slate-800 mt-4 pt-4">
+                <h5 className="text-xs font-black uppercase tracking-widest text-amber-400 mb-3">Your Unlocked Premium Assets</h5>
+                
+                <div className="space-y-2">
+                  <div className="bg-slate-950 rounded-lg p-3 border border-slate-800 flex justify-between items-center">
+                    <div>
+                      <p className="text-xs font-bold text-slate-200">60 High-Yield Exam Mocks</p>
+                      <p className="text-[10px] text-slate-500">Includes CSAT, GS speed runs and formula simulators</p>
+                    </div>
+                    <button 
+                      onClick={() => {
+                        setUnlockedDetailsModal(null);
+                        setCurrentPage("mock");
+                        setMockFilter(unlockedDetailsModal.category as any);
+                      }} 
+                      className="bg-amber-500 hover:bg-amber-600 text-slate-950 px-3 py-1.5 rounded-md text-[10px] font-black uppercase tracking-wider cursor-pointer"
+                    >
+                      Access
+                    </button>
+                  </div>
+
+                  <div className="bg-slate-950 rounded-lg p-3 border border-slate-800 flex justify-between items-center">
+                    <div>
+                      <p className="text-xs font-bold text-slate-200">Premium Curated PYQ Explainers</p>
+                      <p className="text-[10px] text-slate-500">Fully solved, mapped to latest 2026 patterns</p>
+                    </div>
+                    <button 
+                      onClick={() => {
+                        setUnlockedDetailsModal(null);
+                        setCurrentPage("pdf");
+                        setPdfFilter(unlockedDetailsModal.category as any);
+                      }} 
+                      className="bg-amber-500 hover:bg-amber-600 text-slate-950 px-3 py-1.5 rounded-md text-[10px] font-black uppercase tracking-wider cursor-pointer"
+                    >
+                      Read
+                    </button>
+                  </div>
+
+                  <div className="bg-slate-950 rounded-lg p-3 border border-slate-800 flex justify-between items-center">
+                    <div>
+                      <p className="text-xs font-bold text-slate-200">Current Affairs 2026 Bullet Key</p>
+                      <p className="text-[10px] text-slate-500">Premium high-yield current event mapping</p>
+                    </div>
+                    <button 
+                      onClick={() => alert("Downloading Premium Current Affairs Bullet Key PDF... Check your browser downloads!")} 
+                      className="bg-amber-500 hover:bg-amber-600 text-slate-950 px-3 py-1.5 rounded-md text-[10px] font-black uppercase tracking-wider flex items-center gap-1 cursor-pointer"
+                    >
+                      <Download size={10} /> Download
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-amber-500/10 border border-amber-400/20 rounded-xl p-4 mt-5 flex gap-3 items-start">
+                <Sparkles className="text-amber-400 mt-0.5 shrink-0 animate-pulse" size={16} />
+                <div>
+                  <p className="text-xs font-bold text-white uppercase tracking-wider leading-none">Success Guaranteed</p>
+                  <p className="text-[10px] text-slate-400 mt-1 leading-normal">
+                    This premium pack covers every major high-probability question trend. Complete all mocks and read all explanatory materials twice.
+                  </p>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

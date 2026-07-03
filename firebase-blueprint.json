@@ -1,0 +1,39 @@
+{
+  "entities": {
+    "test_attempts": {
+      "title": "Test Attempt",
+      "description": "Record of a user taking a standard mock test",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "The UID of the user who completed the test" },
+        "testId": { "type": "string", "description": "The ID of the mock test" },
+        "testTitle": { "type": "string", "description": "Title of the mock test" },
+        "score": { "type": "integer", "description": "Score obtained" },
+        "totalQuestions": { "type": "integer", "description": "Total questions in test" },
+        "timestamp": { "type": "integer", "description": "Epoch millisecond timestamp of the attempt" }
+      },
+      "required": ["userId", "testId", "testTitle", "score", "totalQuestions", "timestamp"]
+    },
+    "user_purchases": {
+      "title": "User Purchases",
+      "description": "Subscription and premium packs unlock states for a user",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "The UID of the user" },
+        "hasPortalPass": { "type": "boolean", "description": "Whether user has unlocked the standard portal pass" },
+        "unlockedPacks": { "type": "array", "description": "IDs of premium packs unlocked" }
+      },
+      "required": ["userId", "hasPortalPass", "unlockedPacks"]
+    }
+  },
+  "firestore": {
+    "/test_attempts/{attemptId}": {
+      "schema": "test_attempts",
+      "description": "User mock test results"
+    },
+    "/user_purchases/{userId}": {
+      "schema": "user_purchases",
+      "description": "Purchased status for standard portal pass and premium exam crackers"
+    }
+  }
+}
