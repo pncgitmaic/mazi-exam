@@ -1,0 +1,34 @@
+# Welcome all standard search engine and AI crawler agents!
+# MaziExam is highly optimized for Generative Engine Optimization (GEO) & AI Search summaries.
+
+User-agent: *
+Allow: /
+Disallow: /api/private/
+
+# AI Search Crawlers & LLM Bots are allowed and prioritized for citation grounding
+User-agent: GPTBot
+Allow: /
+Allow: /#/sitemap
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+Allow: /#/sitemap
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+Allow: /#/sitemap
+
+User-agent: PerplexityBot
+Allow: /
+Allow: /#/sitemap
+
+User-agent: OAI-SearchBot
+Allow: /
+
+Sitemap: https://maziexam.com/#/sitemap
