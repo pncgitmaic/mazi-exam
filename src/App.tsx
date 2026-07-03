@@ -45,6 +45,371 @@ import {
 } from "./data";
 import { auth, db, onAuthStateChanged, collection, addDoc, doc, getDoc, setDoc, User as FirebaseUser } from "./firebase";
 import { AuthModal } from "./components/AuthModal";
+import { GauriChatBot } from "./components/GauriChatBot";
+
+// Multilingual translations mapping
+const translations: Record<"en" | "hi" | "mr", Record<string, string>> = {
+  en: {
+    "Government Exams": "Government Exams",
+    "MockTest Portal": "MockTest Portal",
+    "Job Alerts": "Job Alerts",
+    "Upcoming Exams": "Upcoming Exams",
+    "All Exams": "All Exams",
+    "Mock Test": "Mock Test",
+    "Paper PDF": "Paper PDF",
+    "Get Selection": "Get Selection",
+    "Jobs": "Jobs",
+    "Exams": "Exams",
+    "Mocks": "Mocks",
+    "PDFs": "PDFs",
+    "Selection": "Selection",
+    "Sign In": "Sign In",
+    "Sign Out": "Sign Out",
+    "Premium Pass Active": "Premium Pass Active",
+    "Search": "Search",
+    "Search job, exams, mock tests or syllabus...": "Search job, exams, mock tests or syllabus...",
+    "Search PDFs by subject, title or category...": "Search PDFs by subject, title or category...",
+    "Search mock tests by title, category or subject...": "Search mock tests by title, category or subject...",
+    "Search Job Alerts...": "Search Job Alerts...",
+    "Search Exams...": "Search Exams...",
+    "Search Mock Tests...": "Search Mock Tests...",
+    "Search Paper PDFs...": "Search Paper PDFs...",
+    
+    // Categories
+    "UPSC": "UPSC",
+    "MPSC": "MPSC",
+    "Railway Exams": "Railway Exams",
+    "SSC Exams": "SSC Exams",
+    "Banking Exams": "Banking Exams",
+    "Defence Exams": "Defence Exams",
+    "Clerk Exams": "Clerk Exams",
+    "State Exams": "State Exams",
+    "Private Exams": "Private Exams",
+    "Medical Exams": "Medical Exams",
+    "Engineering Exams": "Engineering Exams",
+    "College Exams": "College Exams",
+
+    // Jobs Filters
+    "All Jobs": "All Jobs",
+    "Govt Jobs": "Govt Jobs",
+    "Private Jobs": "Private Jobs",
+    "Medical Jobs": "Medical Jobs",
+    "Engineering Jobs": "Engineering Jobs",
+    "College Jobs": "College Jobs",
+    "No Job Alerts Found": "No Job Alerts Found",
+    "Apply Now": "Apply Now",
+    "Last Date": "Last Date",
+    "Vacancies": "Vacancies",
+    "Qualification": "Qualification",
+    "Salary": "Salary",
+
+    // Banners & Slide
+    "Active Government & Private Job Alerts 2026": "Active Government & Private Job Alerts 2026",
+    "Authentic PYQs & Solution Key PDF Vault": "Authentic PYQs & Solution Key PDF Vault",
+    "Free Live Exam Simulators & Daily Streaks": "Free Live Exam Simulators & Daily Streaks",
+    "Explore immediate recruitment announcements from top boards including MPSC, UPSC, SSC, and premium private companies like TCS and Infosys.": "Explore immediate recruitment announcements from top boards including MPSC, UPSC, SSC, and premium private companies like TCS and Infosys.",
+    "Study high-resolution official reference answer booklets, exam-oriented notes, and syllabus breakdowns curated for top scoring.": "Study high-resolution official reference answer booklets, exam-oriented notes, and syllabus breakdowns curated for top scoring.",
+    "Take free test drives anytime, practice without boundaries, track your historic accuracy levels and secure success.": "Take free test drives anytime, practice without boundaries, track your historic accuracy levels and secure success.",
+    
+    // Buttons & Actions
+    "Download Key PDF": "Download Key PDF",
+    "View Job Alerts": "View Job Alerts",
+    "Read PDFs": "Read PDFs",
+    "Launch Simulator": "Launch Simulator",
+    "Attempt Free Test": "Attempt Free Test",
+    "Unlock All (₹80/mo)": "Unlock All (₹80/mo)",
+    "Included": "Included",
+    "Study Now": "Study Now",
+    "Unlock Pass": "Unlock Pass",
+    "Start Live Mock": "Start Live Mock",
+    "View Syllabus": "View Syllabus",
+    "Official Website": "Official Website",
+    "Exam Details": "Exam Details",
+    "Code": "Code",
+    "Exam Date": "Exam Date",
+    "Eligibility": "Eligibility",
+    "Syllabus Topics": "Syllabus Topics",
+    
+    // PDF page & Mock test general
+    "Paper PDF Vault": "Paper PDF Vault",
+    "Official Maharashtra & Central Exam Answer Booklets and PYQ PDFs": "Official Maharashtra & Central Exam Answer Booklets and PYQ PDFs",
+    "Search paper, subject or exam...": "Search paper, subject or exam...",
+    "No PDFs Found": "No PDFs Found",
+    "pages": "pages",
+    "questions": "questions",
+    "Year": "Year",
+    "Subject": "Subject",
+    "Instant Practice Mocks": "Instant Practice Mocks",
+    "Speed practice drives designed on actual NCERT & board standards": "Speed practice drives designed on actual NCERT & board standards",
+    "No Mock Tests Found": "No Mock Tests Found",
+    "Start Test Now": "Start Test Now",
+    "Minutes": "Minutes",
+    "Questions": "Questions",
+    
+    // Subscription
+    "One-time subscription of ₹80/month unlocks ALL premium mock tests, CSAT/GS speed simulators, trend-mapped answer booklets, and current affairs keys.": "One-time subscription of ₹80/month unlocks ALL premium mock tests, CSAT/GS speed simulators, trend-mapped answer booklets, and current affairs keys.",
+    "MaziExam Premium All-Access Pass": "MaziExam Premium All-Access Pass",
+    "Subscribe once and immediately unlock all current and future premium packs listed below. Instant access to speed runs, PYQ answer keys, and target current affairs.": "Subscribe once and immediately unlock all current and future premium packs listed below. Instant access to speed runs, PYQ answer keys, and target current affairs.",
+    "Get All-Access Pass": "Get All-Access Pass",
+    "BEST VALUE": "BEST VALUE",
+    "Monthly Subscription": "Monthly Subscription",
+    "Cancel subscription anytime": "Cancel subscription anytime",
+    "All-Access Subscription is ACTIVE!": "All-Access Subscription is ACTIVE!",
+    "You have premium access to every exam pack, speed run, and expert-written key.": "You have premium access to every exam pack, speed run, and expert-written key.",
+    "Auto-Renewal: ₹80/mo (sandbox)": "Auto-Renewal: ₹80/mo (sandbox)",
+    "Needs Pass": "Needs Pass",
+    "About Us": "About Us",
+    "Contact Us": "Contact Us",
+    "Terms & Conditions": "Terms & Conditions",
+    "Privacy Policy": "Privacy Policy",
+    "Sitemap": "Sitemap",
+    "About": "About",
+    "Contact": "Contact",
+    "Terms": "Terms",
+    "Privacy": "Privacy",
+    "Sitemap Link": "Sitemap"
+  },
+  hi: {
+    "Government Exams": "सरकारी परीक्षा",
+    "MockTest Portal": "मॉकटेस्ट पोर्टल",
+    "Job Alerts": "नौकरी अलर्ट",
+    "Upcoming Exams": "आगामी परीक्षाएं",
+    "All Exams": "सभी परीक्षाएं",
+    "Mock Test": "मॉक टेस्ट",
+    "Paper PDF": "पेपर पीडीएफ",
+    "Get Selection": "चयन प्राप्त करें",
+    "Jobs": "नौकरियां",
+    "Exams": "परीक्षाएं",
+    "Mocks": "मॉक टेस्ट",
+    "PDFs": "पीडीएफ",
+    "Selection": "चयन",
+    "Sign In": "साइन इन करें",
+    "Sign Out": "साइन आउट",
+    "Premium Pass Active": "प्रीमियम पास सक्रिय",
+    "Search": "खोजें",
+    "Search job, exams, mock tests or syllabus...": "नौकरी, परीक्षा, मॉक टेस्ट या पाठ्यक्रम खोजें...",
+    "Search PDFs by subject, title or category...": "विषय, शीर्षक या श्रेणी के अनुसार पीडीएफ खोजें...",
+    "Search mock tests by title, category or subject...": "शीर्षक, श्रेणी या विषय के अनुसार मॉक टेस्ट खोजें...",
+    "Search Job Alerts...": "नौकरी अलर्ट खोजें...",
+    "Search Exams...": "परीक्षाएं खोजें...",
+    "Search Mock Tests...": "मॉक टेस्ट खोजें...",
+    "Search Paper PDFs...": "प्रश्न पत्र पीडीएफ खोजें...",
+
+    // Categories
+    "UPSC": "यूपीएससी (UPSC)",
+    "MPSC": "एमपीएससी (MPSC)",
+    "Railway Exams": "रेलवे परीक्षाएं",
+    "SSC Exams": "एसएससी परीक्षाएं",
+    "Banking Exams": "बैंकिंग परीक्षाएं",
+    "Defence Exams": "रक्षा परीक्षाएं",
+    "Clerk Exams": "क्लर्क परीक्षाएं",
+    "State Exams": "राज्य परीक्षाएं",
+    "Private Exams": "प्राइवेट परीक्षाएं",
+    "Medical Exams": "मेडिकल परीक्षाएं",
+    "Engineering Exams": "इंजीनियरिंग परीक्षाएं",
+    "College Exams": "कॉलेज परीक्षाएं",
+
+    // Jobs Filters
+    "All Jobs": "सभी नौकरियां",
+    "Govt Jobs": "सरकारी नौकरियां",
+    "Private Jobs": "प्राइवेट नौकरियां",
+    "Medical Jobs": "मेडिकल नौकरियां",
+    "Engineering Jobs": "इंजीनियरिंग नौकरियां",
+    "College Jobs": "कॉलेज नौकरियां",
+    "No Job Alerts Found": "कोई नौकरी अलर्ट नहीं मिला",
+    "Apply Now": "अभी आवेदन करें",
+    "Last Date": "अंतिम तिथि",
+    "Vacancies": "रिक्तियां",
+    "Qualification": "योग्यता",
+    "Salary": "वेतन",
+
+    // Banners & Slide
+    "Active Government & Private Job Alerts 2026": "सक्रिय सरकारी और निजी नौकरी अलर्ट 2026",
+    "Authentic PYQs & Solution Key PDF Vault": "प्रामाणिक PYQ और समाधान कुंजी पीडीएफ वॉल्ट",
+    "Free Live Exam Simulators & Daily Streaks": "निःशुल्क लाइव परीक्षा सिमुलेटर और दैनिक स्ट्रीक्स",
+    "Explore immediate recruitment announcements from top boards including MPSC, UPSC, SSC, and premium private companies like TCS and Infosys.": "एमपीएससी, यूपीएससी, एसएससी जैसे शीर्ष बोर्डों और टीसीएस और इंफोसिस जैसी प्रीमियम निजी कंपनियों से तत्काल भर्ती घोषणाओं का पता लगाएं।",
+    "Study high-resolution official reference answer booklets, exam-oriented notes, and syllabus breakdowns curated for top scoring.": "उच्च स्कोरिंग के लिए तैयार की गई उच्च-रिज़ॉल्यूशन आधिकारिक संदर्भ उत्तर पुस्तिकाओं, परीक्षा-उन्मुख नोट्स और पाठ्यक्रम विवरण का अध्ययन करें।",
+    "Take free test drives anytime, practice without boundaries, track your historic accuracy levels and secure success.": "किसी भी समय निःशुल्क अभ्यास परीक्षा दें, बिना किसी सीमा के अभ्यास करें, अपनी ऐतिहासिक सटीकता को ट्रैक करें और सफलता सुनिश्चित करें।",
+
+    // Buttons & Actions
+    "Download Key PDF": "कुंजी पीडीएफ डाउनलोड करें",
+    "View Job Alerts": "नौकरी अलर्ट देखें",
+    "Read PDFs": "पीडीएफ पढ़ें",
+    "Launch Simulator": "सिम्युलेटर शुरू करें",
+    "Attempt Free Test": "निःशुल्क टेस्ट दें",
+    "Unlock All (₹80/mo)": "सभी अनलॉक करें (₹80/माह)",
+    "Included": "शामिल है",
+    "Study Now": "अभी पढ़ें",
+    "Unlock Pass": "पास अनलॉक करें",
+    "Start Live Mock": "लाइव मॉक शुरू करें",
+    "View Syllabus": "पाठ्यक्रम देखें",
+    "Official Website": "आधिकारिक वेबसाइट",
+    "Exam Details": "परीक्षा विवरण",
+    "Code": "कोड",
+    "Exam Date": "परीक्षा तिथि",
+    "Eligibility": "पात्रता",
+    "Syllabus Topics": "पाठ्यक्रम विषय",
+
+    // PDF page & Mock test general
+    "Paper PDF Vault": "पेपर पीडीएफ वॉल्ट",
+    "Official Maharashtra & Central Exam Answer Booklets and PYQ PDFs": "आधिकारिक महाराष्ट्र और केंद्रीय परीक्षा उत्तर पुस्तिकाएं और PYQ पीडीएफ",
+    "Search paper, subject or exam...": "पेपर, विषय या परीक्षा खोजें...",
+    "No PDFs Found": "कोई पीडीएफ नहीं मिला",
+    "pages": "पृष्ठ",
+    "questions": "प्रश्न",
+    "Year": "वर्ष",
+    "Subject": "विषय",
+    "Instant Practice Mocks": "त्वरित अभ्यास मॉक",
+    "Speed practice drives designed on actual NCERT & board standards": "वास्तविक एनसीईआरटी और बोर्ड मानकों पर डिज़ाइन किए गए स्पीड अभ्यास टेस्ट",
+    "No Mock Tests Found": "कोई मॉक टेस्ट नहीं मिला",
+    "Start Test Now": "अभी टेस्ट शुरू करें",
+    "Minutes": "मिनट",
+    "Questions": "प्रश्न",
+
+    // Subscription
+    "One-time subscription of ₹80/month unlocks ALL premium mock tests, CSAT/GS speed simulators, trend-mapped answer booklets, and current affairs keys.": "₹80/माह का एक बार का सब्सक्रिप्शन सभी प्रीमियम मॉक टेस्ट, CSAT/GS स्पीड सिमुलेटर, ट्रेंड-मैप्ड उत्तर पुस्तिकाओं और करंट अफेयर्स कुंजी को अनलॉक करता है।",
+    "MaziExam Premium All-Access Pass": "माझीएग्जाम प्रीमियम ऑल-एक्सेस पास",
+    "Subscribe once and immediately unlock all current and future premium packs listed below. Instant access to speed runs, PYQ answer keys, and target current affairs.": "एक बार सदस्यता लें और नीचे दी गई सभी वर्तमान और भविष्य की प्रीमियम श्रेणियों को तुरंत अनलॉक करें। स्पीड रन, PYQ उत्तर कुंजी और करंट अफेयर्स तक तुरंत पहुंच।",
+    "Get All-Access Pass": "ऑल-एक्सेस पास प्राप्त करें",
+    "BEST VALUE": "सर्वोत्तम मूल्य",
+    "Monthly Subscription": "मासिक सदस्यता",
+    "Cancel subscription anytime": "कभी भी सदस्यता रद्द करें",
+    "All-Access Subscription is ACTIVE!": "ऑल-एक्सेस सदस्यता सक्रिय है!",
+    "You have premium access to every exam pack, speed run, and expert-written key.": "आपके पास प्रत्येक परीक्षा पैक, स्पीड रन और विशेषज्ञ-लिखित कुंजी तक प्रीमियम पहुंच है।",
+    "Auto-Renewal: ₹80/mo (sandbox)": "स्वतः नवीनीकरण: ₹80/माह (सैंडबॉक्स)",
+    "Needs Pass": "पास आवश्यक है",
+    "About Us": "हमारे बारे में",
+    "Contact Us": "संपर्क करें",
+    "Terms & Conditions": "नियम और शर्तें",
+    "Privacy Policy": "गोपनीयता नीति",
+    "Sitemap": "साइटमैप",
+    "About": "हमारे बारे में",
+    "Contact": "संपर्क",
+    "Terms": "नियम",
+    "Privacy": "गोपनीयता",
+    "Sitemap Link": "साइटमैप"
+  },
+  mr: {
+    "Government Exams": "सरकारी परीक्षा",
+    "MockTest Portal": "मॉकटेस्ट पोर्टल",
+    "Job Alerts": "नोकरी अलर्ट",
+    "Upcoming Exams": "आगामी परीक्षा",
+    "All Exams": "सर्व परीक्षा",
+    "Mock Test": "मॉक टेस्ट",
+    "Paper PDF": "पेपर पीडीएफ",
+    "Get Selection": "निवड मिळवा",
+    "Jobs": "नोकऱ्या",
+    "Exams": "परीक्षा",
+    "Mocks": "मॉक",
+    "PDFs": "पीडीएफ",
+    "Selection": "निवड",
+    "Sign In": "साइन इन करा",
+    "Sign Out": "साइन आउट",
+    "Premium Pass Active": "प्रीमियम पास सक्रिय",
+    "Search": "शोधा",
+    "Search job, exams, mock tests or syllabus...": "नोकरी, परीक्षा, मॉक टेस्ट किंवा अभ्यासक्रम शोधा...",
+    "Search PDFs by subject, title or category...": "विषय, शीर्षक किंवा श्रेणीनुसार पीडीएफ शोधा...",
+    "Search mock tests by title, category or subject...": "शीर्षक, श्रेणी किंवा विष्यानुसार मॉक टेस्ट शोधा...",
+    "Search Job Alerts...": "नोकरी जाहिराती शोधा...",
+    "Search Exams...": "परीक्षा शोधा...",
+    "Search Mock Tests...": "मॉक परीक्षा शोधा...",
+    "Search Paper PDFs...": "प्रश्नपत्रिका पीडीएफ शोधा...",
+
+    // Categories
+    "UPSC": "यूपीएससी (UPSC)",
+    "MPSC": "एमपीएससी (MPSC)",
+    "Railway Exams": "रेल्वे परीक्षा",
+    "SSC Exams": "एसएससी परीक्षा",
+    "Banking Exams": "बँकिंग परीक्षा",
+    "Defence Exams": "संरक्षण परीक्षा",
+    "Clerk Exams": "लिपिक परीक्षा",
+    "State Exams": "राज्य परीक्षा",
+    "Private Exams": "खाजगी परीक्षा",
+    "Medical Exams": "वैद्यकीय परीक्षा",
+    "Engineering Exams": "अभियांत्रिकी परीक्षा",
+    "College Exams": "कॉलेज परीक्षा",
+
+    // Jobs Filters
+    "All Jobs": "सर्व नोकऱ्या",
+    "Govt Jobs": "सरकारी नोकऱ्या",
+    "Private Jobs": "खाजगी नोकऱ्या",
+    "Medical Jobs": "वैद्यकीय नोकऱ्या",
+    "Engineering Jobs": "अभियांत्रिकी नोकऱ्या",
+    "College Jobs": "कॉलेज नोकऱ्या",
+    "No Job Alerts Found": "कोणतीही नोकरी अलर्ट सापडली नाही",
+    "Apply Now": "आता अर्ज करा",
+    "Last Date": "अंतिम तारीख",
+    "Vacancies": "रिक्त जागा",
+    "Qualification": "पात्रता",
+    "Salary": "पगार",
+
+    // Banners & Slide
+    "Active Government & Private Job Alerts 2026": "सक्रिय सरकारी आणि खाजगी नोकरी अलर्ट २०२६",
+    "Authentic PYQs & Solution Key PDF Vault": "अधिकृत PYQs आणि उत्तरतालिका पीडीएफ संग्रह",
+    "Free Live Exam Simulators & Daily Streaks": "मोफत लाईव्ह परीक्षा सिम्युलेटर आणि डेली स्ट्रीक्स",
+    "Explore immediate recruitment announcements from top boards including MPSC, UPSC, SSC, and premium private companies like TCS and Infosys.": "एमपीएससी, यूपीएससी, एसएससी यांसारख्या प्रमुख बोर्डांकडून आणि टीसीएस आणि इन्फोसिस सारख्या प्रीमियम खाजगी कंपन्यांकडून तात्काळ भरती जाहीरती शोधा.",
+    "Study high-resolution official reference answer booklets, exam-oriented notes, and syllabus breakdowns curated for top scoring.": "उच्च गुणांसाठी तयार केलेली उच्च-रिझोल्यूशन अधिकृत संदर्भ उत्तरपुस्तिका, परीक्षा-केंद्रित नोट्स आणि अभ्यासक्रम विवरणाचा अभ्यास करा.",
+    "Take free test drives anytime, practice without boundaries, track your historic accuracy levels and secure success.": "कधीही मोफत सराव परीक्षा द्या, कोणत्याही मर्यादेशिवाय सराव करा, तुमच्या ऐतिहासिक अचूकतेचा मागोवा घ्या आणि यश मिळवा.",
+
+    // Buttons & Actions
+    "Download Key PDF": "उत्तरतालिका पीडीएफ डाउनलोड करा",
+    "View Job Alerts": "नोकरी अलर्ट पहा",
+    "Read PDFs": "पीडीएफ वाचा",
+    "Launch Simulator": "सिम्युलेटर सुरू करा",
+    "Attempt Free Test": "मोफत परीक्षा द्या",
+    "Unlock All (₹80/mo)": "सर्व अनलॉक करा (₹८०/महिना)",
+    "Included": "समाविष्ट आहे",
+    "Study Now": "आता अभ्यास करा",
+    "Unlock Pass": "पास अनलॉक करा",
+    "Start Live Mock": "लाईव्ह मॉक सुरू करा",
+    "View Syllabus": "अभ्यासक्रम पहा",
+    "Official Website": "अधिकृत वेबसाईट",
+    "Exam Details": "परीक्षा तपशील",
+    "Code": "कोड",
+    "Exam Date": "परीक्षेची तारीख",
+    "Eligibility": "पात्रता",
+    "Syllabus Topics": "अभ्यासक्रम विषय",
+
+    // PDF page & Mock test general
+    "Paper PDF Vault": "पेपर पीडीएफ संग्रह",
+    "Official Maharashtra & Central Exam Answer Booklets and PYQ PDFs": "अधिकृत महाराष्ट्र आणि केंद्रीय परीक्षा उत्तरपुस्तिका आणि PYQ पीडीएफ",
+    "Search paper, subject or exam...": "पेपर, विषय किंवा परीक्षा शोधा...",
+    "No PDFs Found": "कोणतीही पीडीएफ सापडली नाही",
+    "pages": "पाने",
+    "questions": "प्रश्न",
+    "Year": "वर्ष",
+    "Subject": "विषय",
+    "Instant Practice Mocks": "झटपट सराव मॉक",
+    "Speed practice drives designed on actual NCERT & board standards": "वास्तविक एनसीईआरटी आणि बोर्ड मानकांवर डिझाइन केलेल्या वेगवान सराव परीक्षा",
+    "No Mock Tests Found": "कोणतीही मॉक परीक्षा सापडली नाही",
+    "Start Test Now": "आता परीक्षा सुरू करा",
+    "Minutes": "मिनिटे",
+    "Questions": "प्रश्न",
+
+    // Subscription
+    "One-time subscription of ₹80/month unlocks ALL premium mock tests, CSAT/GS speed simulators, trend-mapped answer booklets, and current affairs keys.": "₹८०/महिना च्या एकाच सबस्क्रिप्शनमध्ये सर्व प्रीमियम मॉक टेस्ट्स, CSAT/GS स्पीड सिम्युलेटर, ट्रेंड-मॅप केलेल्या उत्तरपुस्तिका आणि चालू घडामोडींच्या कीज अनलॉक करा.",
+    "MaziExam Premium All-Access Pass": "माझीएग्जाम प्रीमियम ऑल-एक्सेस पास",
+    "Subscribe once and immediately unlock all current and future premium packs listed below. Instant access to speed runs, PYQ answer keys, and target current affairs.": "एकदा सबस्क्राइब करा आणि खालील सर्व वर्तमान आणि भविष्यातील प्रीमियम परीक्षा संच त्वरित अनलॉक करा. स्पीड रन्स, PYQ उत्तरतालिका आणि चालू घडामोडींवर त्वरित प्रवेश.",
+    "Get All-Access Pass": "ऑल-एक्सेस पास मिळवा",
+    "BEST VALUE": "सर्वोत्तम मूल्य",
+    "Monthly Subscription": "मासिक सबस्क्रिप्शन",
+    "Cancel subscription anytime": "कधीही सबस्क्रिप्शन रद्द करा",
+    "All-Access Subscription is ACTIVE!": "ऑल-एक्सेस सबस्क्रिप्शन सक्रिय आहे!",
+    "You have premium access to every exam pack, speed run, and expert-written key.": "तुमच्याकडे प्रत्येक परीक्षा पॅक, स्पीड रन आणि तज्ञ-लिखित की वर प्रीमियम प्रवेश आहे.",
+    "Auto-Renewal: ₹80/mo (sandbox)": "स्वयंचलित नूतनीकरण: ₹८०/महिना (सँडबॉक्स)",
+    "Needs Pass": "पास आवश्यक आहे",
+    "About Us": "आमच्याबद्दल",
+    "Contact Us": "संपर्क साधा",
+    "Terms & Conditions": "नियम आणि अटी",
+    "Privacy Policy": "गोपनीयतेचे धोरण",
+    "Sitemap": "साईटमॅप",
+    "About": "आमच्याबद्दल",
+    "Contact": "संपर्क",
+    "Terms": "अटी",
+    "Privacy": "गोपनीयता",
+    "Sitemap Link": "साईटमॅप"
+  }
+};
 
 function AppLogo({ className, id, isFooter = false }: { className?: string; id?: string; isFooter?: boolean }) {
   const [imgError, setImgError] = useState(false);
@@ -87,8 +452,28 @@ function AppLogo({ className, id, isFooter = false }: { className?: string; id?:
 }
 
 export default function App() {
+  // Language state & localization helpers
+  const [currentLang, setCurrentLang] = useState<"en" | "hi" | "mr">(() => {
+    const saved = localStorage.getItem("userLanguage");
+    return (saved as "en" | "hi" | "mr") || "en";
+  });
+
+  const handleLanguageChange = (lang: "en" | "hi" | "mr") => {
+    setCurrentLang(lang);
+    localStorage.setItem("userLanguage", lang);
+  };
+
+  const t = (text: string) => {
+    if (!text) return "";
+    const langTranslations = translations[currentLang];
+    if (langTranslations && langTranslations[text]) {
+      return langTranslations[text];
+    }
+    return text;
+  };
+
   // Navigation State
-  const [currentPage, setCurrentPage] = useState<"jobs" | "exams" | "pdf" | "mock" | "selection">("jobs");
+  const [currentPage, setCurrentPage] = useState<"jobs" | "exams" | "pdf" | "mock" | "selection" | "about" | "contact" | "terms" | "privacy" | "sitemap">("jobs");
   
   // Auth state
   const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
@@ -114,6 +499,13 @@ export default function App() {
 
   // Unlocked premium pack details dialog
   const [unlockedDetailsModal, setUnlockedDetailsModal] = useState<PremiumExamPack | null>(null);
+
+  // Contact Us form states
+  const [contactName, setContactName] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
+  const [contactSubject, setContactSubject] = useState("");
+  const [contactMessage, setContactMessage] = useState("");
+  const [contactSubmitted, setContactSubmitted] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -246,17 +638,17 @@ export default function App() {
 
   // Filter toggle for Upcoming Exams page
   const [examFilter, setExamFilter] = useState<
-    "upcoming" | "all" | "UPSC" | "MPSC" | "Railway Exams" | "SSC Exams" | "Banking Exams" | "Defence Exams" | "Clerk Exams" | "State Exams" | "Private Exams"
+    "upcoming" | "all" | "UPSC" | "MPSC" | "Railway Exams" | "SSC Exams" | "Banking Exams" | "Defence Exams" | "Clerk Exams" | "State Exams" | "Private Exams" | "Medical Exams" | "Engineering Exams" | "College Exams"
   >("upcoming");
 
   // Filter toggle for Paper PDF page
   const [pdfFilter, setPdfFilter] = useState<
-    "upcoming" | "all" | "UPSC" | "MPSC" | "Railway Exams" | "SSC Exams" | "Banking Exams" | "Defence Exams" | "Clerk Exams" | "State Exams" | "Private Exams"
+    "upcoming" | "all" | "UPSC" | "MPSC" | "Railway Exams" | "SSC Exams" | "Banking Exams" | "Defence Exams" | "Clerk Exams" | "State Exams" | "Private Exams" | "Medical Exams" | "Engineering Exams" | "College Exams"
   >("all");
 
   // Filter toggle for Mock Test page
   const [mockFilter, setMockFilter] = useState<
-    "upcoming" | "all" | "UPSC" | "MPSC" | "Railway Exams" | "SSC Exams" | "Banking Exams" | "Defence Exams" | "Clerk Exams" | "State Exams" | "Private Exams"
+    "upcoming" | "all" | "UPSC" | "MPSC" | "Railway Exams" | "SSC Exams" | "Banking Exams" | "Defence Exams" | "Clerk Exams" | "State Exams" | "Private Exams" | "Medical Exams" | "Engineering Exams" | "College Exams"
   >("all");
 
   // Demo banner active slide state
@@ -403,7 +795,46 @@ export default function App() {
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans" id="app-root">
       {/* GLOBAL HEADER */}
       <header className="bg-white border-b border-gray-200 relative z-40 shadow-sm" id="global-header">
-        <div className="max-w-[1200px] mx-auto px-4 md:px-6 py-3 flex items-center justify-between">
+        {/* Very small compact language switcher in the absolute top right corner */}
+        <div className="absolute top-1 right-3 md:right-6 flex items-center gap-1.5" id="language-switcher">
+          <span className="text-[8px] md:text-[9px] text-slate-400 font-extrabold uppercase select-none tracking-wider">Lang:</span>
+          <div className="flex items-center gap-0.5 bg-slate-50 p-0.5 rounded border border-slate-200 shadow-3xs">
+            <button
+              onClick={() => handleLanguageChange("en")}
+              className={`px-1 py-0.5 text-[8px] md:text-[9px] font-black rounded-xs transition-all cursor-pointer ${
+                currentLang === "en"
+                  ? "bg-[#004aad] text-white"
+                  : "text-slate-500 hover:text-[#004aad] hover:bg-white"
+              }`}
+              title="English"
+            >
+              EN
+            </button>
+            <button
+              onClick={() => handleLanguageChange("hi")}
+              className={`px-1 py-0.5 text-[8px] md:text-[9px] font-black rounded-xs transition-all cursor-pointer ${
+                currentLang === "hi"
+                  ? "bg-[#004aad] text-white"
+                  : "text-slate-500 hover:text-[#004aad] hover:bg-white"
+              }`}
+              title="Hindi"
+            >
+              हिं
+            </button>
+            <button
+              onClick={() => handleLanguageChange("mr")}
+              className={`px-1 py-0.5 text-[8px] md:text-[9px] font-black rounded-xs transition-all cursor-pointer ${
+                currentLang === "mr"
+                  ? "bg-[#004aad] text-white"
+                  : "text-slate-500 hover:text-[#004aad] hover:bg-white"
+              }`}
+              title="Marathi"
+            >
+              मरा
+            </button>
+          </div>
+        </div>
+        <div className="max-w-[1200px] mx-auto px-4 md:px-6 pt-5 pb-3 flex items-center justify-between">
           
           {/* Left: Logo & Stacked Text */}
           <div className="flex items-center gap-3 cursor-pointer" id="header-logo-container" onClick={() => setCurrentPage("jobs")}>
@@ -413,10 +844,10 @@ export default function App() {
             />
             <div className="flex flex-col text-left" id="header-title-text">
               <span className="text-lg md:text-xl font-extrabold text-[#004aad] tracking-tight leading-tight uppercase font-sans">
-                Government Exams
+                {t("Government Exams")}
               </span>
               <span className="text-xs md:text-sm font-semibold text-gray-500 uppercase tracking-widest leading-none">
-                MockTest Portal
+                {t("MockTest Portal")}
               </span>
             </div>
           </div>
@@ -432,7 +863,7 @@ export default function App() {
                   : "text-gray-600 hover:text-[#004aad]"
               }`}
             >
-              Job Alerts
+              {t("Job Alerts")}
             </button>
             <button
               id="nav-link-exams"
@@ -443,7 +874,7 @@ export default function App() {
                   : "text-gray-600 hover:text-[#004aad]"
               }`}
             >
-              Upcoming Exams
+              {t("Upcoming Exams")}
             </button>
             <button
               id="nav-link-mock"
@@ -454,7 +885,7 @@ export default function App() {
                   : "text-gray-600 hover:text-[#004aad]"
               }`}
             >
-              Mock Test
+              {t("Mock Test")}
             </button>
             <button
               id="nav-link-pdf"
@@ -465,7 +896,7 @@ export default function App() {
                   : "text-gray-600 hover:text-[#004aad]"
               }`}
             >
-              Paper PDF
+              {t("Paper PDF")}
             </button>
             <button
               id="nav-link-selection"
@@ -477,16 +908,16 @@ export default function App() {
               }`}
             >
               <Star size={16} className="text-amber-500 animate-pulse fill-amber-400" />
-              Get Selection
+              {t("Get Selection")}
             </button>
           </nav>
 
-          {/* Right: User profile / Sign In */}
-          <div className="flex items-center gap-4" id="header-right-container">
+          {/* Right: User Profile / Sign In */}
+          <div className="flex items-center gap-2 md:gap-4" id="header-right-container">
             {currentUser && hasPortalPass && (
               <div className="hidden lg:flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-amber-500/10 to-yellow-500/10 border border-amber-400/30 text-amber-600 rounded-full text-xs font-black tracking-wider uppercase animate-pulse">
                 <Sparkles size={12} className="fill-amber-400 text-amber-500" />
-                <span>Premium Pass Active</span>
+                <span>{t("Premium Pass Active")}</span>
               </div>
             )}
             
@@ -511,7 +942,7 @@ export default function App() {
                 id="header-signin-btn"
               >
                 <LogIn size={16} />
-                <span>Sign In</span>
+                <span>{t("Sign In")}</span>
               </button>
             )}
           </div>
@@ -526,7 +957,7 @@ export default function App() {
               currentPage === "jobs" ? "bg-[#004aad] text-white font-bold" : "text-gray-600"
             }`}
           >
-            Jobs
+            {t("Jobs")}
           </button>
           <button
             id="mobile-nav-exams"
@@ -535,7 +966,7 @@ export default function App() {
               currentPage === "exams" ? "bg-[#004aad] text-white font-bold" : "text-gray-600"
             }`}
           >
-            Exams
+            {t("Exams")}
           </button>
           <button
             id="mobile-nav-mock"
@@ -544,7 +975,7 @@ export default function App() {
               currentPage === "mock" ? "bg-[#004aad] text-white font-bold" : "text-gray-600"
             }`}
           >
-            Mocks
+            {t("Mocks")}
           </button>
           <button
             id="mobile-nav-pdf"
@@ -553,7 +984,7 @@ export default function App() {
               currentPage === "pdf" ? "bg-[#004aad] text-white font-bold" : "text-gray-600"
             }`}
           >
-            PDFs
+            {t("PDFs")}
           </button>
           <button
             id="mobile-nav-selection"
@@ -565,7 +996,7 @@ export default function App() {
             }`}
           >
             <Star size={11} className="fill-current" />
-            Selection
+            {t("Selection")}
           </button>
         </div>
       </header>
@@ -587,14 +1018,14 @@ export default function App() {
               <div className="flex flex-col text-left relative z-10 max-w-xl">
                 {/* Dynamic Sliding Text content */}
                 <h2 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight leading-tight uppercase font-sans">
-                  {activeBannerIndex === 0 && "Active Government & Private Job Alerts 2026"}
-                  {activeBannerIndex === 1 && "Authentic PYQs & Solution Key PDF Vault"}
-                  {activeBannerIndex === 2 && "Free Live Exam Simulators & Daily Streaks"}
+                  {activeBannerIndex === 0 && t("Active Government & Private Job Alerts 2026")}
+                  {activeBannerIndex === 1 && t("Authentic PYQs & Solution Key PDF Vault")}
+                  {activeBannerIndex === 2 && t("Free Live Exam Simulators & Daily Streaks")}
                 </h2>
                 <p className="text-xs md:text-sm text-slate-500 font-medium mt-1.5 max-w-lg leading-relaxed">
-                  {activeBannerIndex === 0 && "Explore immediate recruitment announcements from top boards including MPSC, UPSC, SSC, and premium private companies like TCS and Infosys."}
-                  {activeBannerIndex === 1 && "Study high-resolution official reference answer booklets, exam-oriented notes, and syllabus breakdowns curated for top scoring."}
-                  {activeBannerIndex === 2 && "Take free test drives anytime, practice without boundaries, track your historic accuracy levels and secure success."}
+                  {activeBannerIndex === 0 && t("Explore immediate recruitment announcements from top boards including MPSC, UPSC, SSC, and premium private companies like TCS and Infosys.")}
+                  {activeBannerIndex === 1 && t("Study high-resolution official reference answer booklets, exam-oriented notes, and syllabus breakdowns curated for top scoring.")}
+                  {activeBannerIndex === 2 && t("Take free test drives anytime, practice without boundaries, track your historic accuracy levels and secure success.")}
                 </p>
                 
                 <div className="flex gap-2.5 mt-4">
@@ -606,9 +1037,9 @@ export default function App() {
                     }}
                     className="bg-[#004aad] hover:bg-[#004aad]/90 text-white font-bold text-xs px-5 py-2.5 rounded shadow-sm transition-all uppercase tracking-wider cursor-pointer"
                   >
-                    {activeBannerIndex === 0 && "View Job Alerts"}
-                    {activeBannerIndex === 1 && "Read PDFs"}
-                    {activeBannerIndex === 2 && "Launch Simulator"}
+                    {activeBannerIndex === 0 && t("View Job Alerts")}
+                    {activeBannerIndex === 1 && t("Read PDFs")}
+                    {activeBannerIndex === 2 && t("Launch Simulator")}
                   </button>
                 </div>
               </div>
@@ -697,12 +1128,12 @@ export default function App() {
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={
                 currentPage === "jobs" 
-                  ? "Search Job Alerts..." 
+                  ? t("Search Job Alerts...") 
                   : currentPage === "exams" 
-                  ? "Search Exams..." 
+                  ? t("Search Exams...") 
                   : currentPage === "mock" 
-                  ? "Search Mock Tests..." 
-                  : "Search Paper PDFs..."
+                  ? t("Search Mock Tests...") 
+                  : t("Search Paper PDFs...")
               }
               className="w-full h-12 md:h-14 pl-12 pr-6 border-2 border-[#004aad] rounded-full text-center text-base md:text-lg focus:outline-none focus:ring-2 focus:ring-[#004aad]/20 transition-all text-[#004aad] placeholder-[#004aad]/60 font-semibold uppercase tracking-wider"
             />
@@ -720,43 +1151,25 @@ export default function App() {
 
         {/* PAGE 1: JOB ALERTS ONLY - CATEGORY TOGGLES */}
         {currentPage === "jobs" && (
-          <div className="flex justify-center gap-3 md:gap-4 py-2" id="job-filter-toggles">
-            <button
-              id="toggle-job-all"
-              onClick={() => setJobCategoryFilter("all")}
-              className={`px-5 py-2.5 rounded-full font-bold text-xs md:text-sm flex items-center gap-1.5 transition-all shadow-sm cursor-pointer ${
-                jobCategoryFilter === "all"
-                  ? "bg-[#004aad] text-white scale-105"
-                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-              }`}
-            >
-              <Briefcase size={14} />
-              All Jobs
-            </button>
-            <button
-              id="toggle-job-gov"
-              onClick={() => setJobCategoryFilter("Government")}
-              className={`px-5 py-2.5 rounded-full font-bold text-xs md:text-sm flex items-center gap-1.5 transition-all shadow-sm cursor-pointer ${
-                jobCategoryFilter === "Government"
-                  ? "bg-amber-600 text-white scale-105"
-                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-              }`}
-            >
-              <Building size={14} />
-              Govt Jobs
-            </button>
-            <button
-              id="toggle-job-private"
-              onClick={() => setJobCategoryFilter("Private")}
-              className={`px-5 py-2.5 rounded-full font-bold text-xs md:text-sm flex items-center gap-1.5 transition-all shadow-sm cursor-pointer ${
-                jobCategoryFilter === "Private"
-                  ? "bg-indigo-600 text-white scale-105"
-                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-              }`}
-            >
-              <Users size={14} />
-              Private Jobs
-            </button>
+          <div className="flex flex-wrap justify-center gap-2 md:gap-3 py-4 px-4 bg-slate-100/50 rounded-xl border border-slate-200/60 max-w-5xl mx-auto w-full shadow-xs mb-4" id="job-filter-toggles">
+            {[
+              { id: "all", label: "All Jobs", colorClass: "bg-[#004aad]" },
+              { id: "Government", label: "Govt Jobs", colorClass: "bg-amber-600" },
+              { id: "Private", label: "Private Jobs", colorClass: "bg-indigo-600" }
+            ].map((categoryItem) => (
+              <button
+                key={categoryItem.id}
+                id={`toggle-job-${categoryItem.id.toLowerCase().replace(/\s+/g, "-")}`}
+                onClick={() => setJobCategoryFilter(categoryItem.id as any)}
+                className={`px-4 py-2 rounded-full font-bold text-xs sm:text-sm tracking-wide transition-all shadow-xs cursor-pointer ${
+                  jobCategoryFilter === categoryItem.id
+                    ? `${categoryItem.colorClass} text-white ring-2 ring-[#004aad]/20 scale-105`
+                    : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:text-[#004aad] hover:border-[#004aad]/30"
+                }`}
+              >
+                {t(categoryItem.label)}
+              </button>
+            ))}
           </div>
         )}
 
@@ -774,7 +1187,10 @@ export default function App() {
               { id: "Defence Exams", label: "Defence Exams" },
               { id: "Clerk Exams", label: "Clerk Exams" },
               { id: "State Exams", label: "State Exams" },
-              { id: "Private Exams", label: "Private Exams" }
+              { id: "Private Exams", label: "Private Exams" },
+              { id: "Medical Exams", label: "Medical Exams" },
+              { id: "Engineering Exams", label: "Engineering Exams" },
+              { id: "College Exams", label: "College Exams" }
             ].map((categoryItem) => (
               <button
                 key={categoryItem.id}
@@ -786,7 +1202,7 @@ export default function App() {
                     : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:text-[#004aad] hover:border-[#004aad]/30"
                 }`}
               >
-                {categoryItem.label}
+                {t(categoryItem.label)}
               </button>
             ))}
           </div>
@@ -806,7 +1222,10 @@ export default function App() {
               { id: "Defence Exams", label: "Defence Exams" },
               { id: "Clerk Exams", label: "Clerk Exams" },
               { id: "State Exams", label: "State Exams" },
-              { id: "Private Exams", label: "Private Exams" }
+              { id: "Private Exams", label: "Private Exams" },
+              { id: "Medical Exams", label: "Medical Exams" },
+              { id: "Engineering Exams", label: "Engineering Exams" },
+              { id: "College Exams", label: "College Exams" }
             ].map((categoryItem) => (
               <button
                 key={categoryItem.id}
@@ -818,7 +1237,7 @@ export default function App() {
                     : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:text-[#004aad] hover:border-[#004aad]/30"
                 }`}
               >
-                {categoryItem.label}
+                {t(categoryItem.label)}
               </button>
             ))}
           </div>
@@ -838,7 +1257,10 @@ export default function App() {
               { id: "Defence Exams", label: "Defence Exams" },
               { id: "Clerk Exams", label: "Clerk Exams" },
               { id: "State Exams", label: "State Exams" },
-              { id: "Private Exams", label: "Private Exams" }
+              { id: "Private Exams", label: "Private Exams" },
+              { id: "Medical Exams", label: "Medical Exams" },
+              { id: "Engineering Exams", label: "Engineering Exams" },
+              { id: "College Exams", label: "College Exams" }
             ].map((categoryItem) => (
               <button
                 key={categoryItem.id}
@@ -850,7 +1272,7 @@ export default function App() {
                     : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:text-[#004aad] hover:border-[#004aad]/30"
                 }`}
               >
-                {categoryItem.label}
+                {t(categoryItem.label)}
               </button>
             ))}
           </div>
@@ -866,12 +1288,24 @@ export default function App() {
               id="active-tab-indicator"
             >
               {currentPage === "jobs" 
-                ? `${jobCategoryFilter === "all" ? "All" : jobCategoryFilter} Job Alerts` 
+                ? `${jobCategoryFilter === "all" ? t("All") : t(jobCategoryFilter)} ${t("Job Alerts")}` 
                 : currentPage === "exams" 
-                ? `${examFilter === "upcoming" ? "Upcoming" : examFilter === "all" ? "All" : examFilter} Exams` 
+                ? `${examFilter === "upcoming" ? t("Upcoming") : examFilter === "all" ? t("All") : t(examFilter)} ${t("Exams")}` 
                 : currentPage === "pdf" 
-                ? `${pdfFilter === "upcoming" ? "Upcoming" : pdfFilter === "all" ? "All" : pdfFilter} PYQ PDFs` 
-                : `${mockFilter === "upcoming" ? "Upcoming" : mockFilter === "all" ? "All" : mockFilter} Mock Tests`}
+                ? `${pdfFilter === "upcoming" ? t("Upcoming") : pdfFilter === "all" ? t("All") : t(pdfFilter)} ${t("PDFs")}` 
+                : currentPage === "mock"
+                ? `${mockFilter === "upcoming" ? t("Upcoming") : mockFilter === "all" ? t("All") : t(mockFilter)} ${t("Mocks")}`
+                : currentPage === "selection"
+                ? t("Get Selection")
+                : currentPage === "about"
+                ? t("About Us")
+                : currentPage === "contact"
+                ? t("Contact Us")
+                : currentPage === "terms"
+                ? t("Terms & Conditions")
+                : currentPage === "privacy"
+                ? t("Privacy Policy")
+                : t("Sitemap")}
             </div>
             {/* Thick blue line spanning full width */}
             <div className="w-full h-1 bg-[#004aad]" id="thick-blue-divider-line" />
@@ -1148,7 +1582,7 @@ export default function App() {
                   <button onClick={() => { setSearchQuery(""); setMockFilter("all"); }} className="mt-2 text-[#004aad] font-bold underline cursor-pointer">Reset search & filters</button>
                 </div>
               )
-            ) : (
+            ) : currentPage === "selection" ? (
               // GET SELECTION - GOLDEN OBSIDIAN PREMIUM PORTAL
               <div className="w-full bg-[#0d121f] text-slate-100 rounded-2xl border border-amber-500/20 shadow-2xl p-6 md:p-10 relative overflow-hidden flex flex-col gap-8 text-left" id="get-selection-premium-page">
                 {/* Visual glow backdrop elements */}
@@ -1390,6 +1824,366 @@ export default function App() {
                     <p className="text-xs text-slate-400 mt-1 leading-relaxed">
                       Our special targets are strictly structured to remove clutter. No useless videos, no endless forums. Only top-tier, high-probability pattern simulators and precise answer booklets written by selected civil service officers.
                     </p>
+                  </div>
+                </div>
+              </div>
+            ) : currentPage === "about" ? (
+              // ABOUT US PAGE
+              <div className="w-full bg-white border border-slate-200 rounded-2xl shadow-md p-6 md:p-10 flex flex-col gap-8 text-left animate-fade-in" id="about-us-page">
+                <div>
+                  <h3 className="text-2xl md:text-3xl font-black text-slate-900 uppercase tracking-tight font-sans">
+                    {t("About Us")}
+                  </h3>
+                  <div className="w-16 h-1 bg-[#004aad] mt-2 rounded-full" />
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+                  <div className="space-y-4">
+                    <p className="text-sm text-slate-600 leading-relaxed font-sans">
+                      <strong>MaziExam</strong> is India's leading civil service and board exam preparation portal, designed to empower competitive exam aspirants in Maharashtra with accurate, clean, and high-probability preparation simulators.
+                    </p>
+                    <p className="text-sm text-slate-600 leading-relaxed font-sans">
+                      Our mission is to democratize high-yield academic preparation. We eliminate expensive coaching clutter and focus strictly on verified reference booklets, real-pattern computer-based test simulator, and live job alerts.
+                    </p>
+                    <div className="bg-[#004aad]/5 border-l-4 border-[#004aad] p-4 rounded-r-lg">
+                      <p className="text-xs font-semibold text-[#004aad] uppercase tracking-wider font-mono">Our Quality Promise</p>
+                      <p className="text-xs text-slate-600 mt-1">
+                        Every single mock question on our platform is reviewed and trend-mapped by retired civil officers and active education professors in Pune and Mumbai.
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-6 space-y-4">
+                    <h4 className="text-base font-bold text-slate-900 uppercase tracking-tight">Core Pillars</h4>
+                    <div className="space-y-3">
+                      <div className="flex gap-3">
+                        <span className="text-lg">⚡</span>
+                        <div>
+                          <p className="text-xs font-bold text-slate-800 uppercase tracking-wide">Live Mock Simulators</p>
+                          <p className="text-[11px] text-slate-500">Practice under authentic timing, countdowns, and instant validation matrices.</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-3">
+                        <span className="text-lg">📚</span>
+                        <div>
+                          <p className="text-xs font-bold text-slate-800 uppercase tracking-wide">PYQ Answer Booklets</p>
+                          <p className="text-[11px] text-slate-500">Access high-resolution solved previous year papers across MPSC, UPSC, SSC, and state boards.</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-3">
+                        <span className="text-lg">🔔</span>
+                        <div>
+                          <p className="text-xs font-bold text-slate-800 uppercase tracking-wide">Instant Job Recruitment Alerts</p>
+                          <p className="text-[11px] text-slate-500">Immediate notifications for government recruitments as soon as official gazettes publish.</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border-t border-slate-100 pt-6 text-center">
+                  <p className="text-xs text-slate-400 font-mono">
+                    MaziExam Portal © 2026. Supporting 500,000+ active aspirants across Maharashtra.
+                  </p>
+                </div>
+              </div>
+            ) : currentPage === "contact" ? (
+              // CONTACT US PAGE
+              <div className="w-full bg-white border border-slate-200 rounded-2xl shadow-md p-6 md:p-10 flex flex-col gap-8 text-left animate-fade-in" id="contact-us-page">
+                <div>
+                  <h3 className="text-2xl md:text-3xl font-black text-slate-900 uppercase tracking-tight font-sans">
+                    {t("Contact Us")}
+                  </h3>
+                  <div className="w-16 h-1 bg-[#004aad] mt-2 rounded-full" />
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+                  <div className="space-y-6">
+                    <p className="text-sm text-slate-600 leading-relaxed">
+                      Have questions about our mock test packages, subscription pass activations, or PYQ keys? Reach out directly and our support team will handle your query.
+                    </p>
+                    
+                    <div className="space-y-4">
+                      <div className="flex items-start gap-3">
+                        <span className="text-slate-400 mt-0.5">📧</span>
+                        <div>
+                          <p className="text-xs font-bold text-slate-800 uppercase tracking-wide">Support Email</p>
+                          <p className="text-sm text-[#004aad] font-medium font-sans">support@maziexam.com</p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-start gap-3">
+                        <span className="text-slate-400 mt-0.5">📍</span>
+                        <div>
+                          <p className="text-xs font-bold text-slate-800 uppercase tracking-wide">Headquarters</p>
+                          <p className="text-sm text-slate-600 font-sans">Sadashiv Peth, Pune, Maharashtra - 411030</p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-start gap-3">
+                        <span className="text-slate-400 mt-0.5">🕒</span>
+                        <div>
+                          <p className="text-xs font-bold text-slate-800 uppercase tracking-wide">Office Hours</p>
+                          <p className="text-sm text-slate-600 font-sans">Monday to Saturday: 10:00 AM - 6:00 PM</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-6">
+                    {contactSubmitted ? (
+                      <div className="py-8 text-center flex flex-col items-center justify-center space-y-3">
+                        <span className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-xl font-bold animate-bounce">✓</span>
+                        <h4 className="text-base font-bold text-slate-900">Message Received!</h4>
+                        <p className="text-xs text-slate-500 leading-relaxed font-sans">
+                          Thank you for reaching out, <strong>{contactName}</strong>. Our academic support coordinators have received your ticket and will respond to <strong>{contactEmail}</strong> within 24 hours.
+                        </p>
+                        <button 
+                          onClick={() => {
+                            setContactSubmitted(false);
+                            setContactName("");
+                            setContactEmail("");
+                            setContactSubject("");
+                            setContactMessage("");
+                          }}
+                          className="mt-4 text-xs font-bold text-[#004aad] underline uppercase tracking-wider cursor-pointer"
+                        >
+                          Submit another inquiry
+                        </button>
+                      </div>
+                    ) : (
+                      <form 
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          if (contactName && contactEmail && contactMessage) {
+                            setContactSubmitted(true);
+                          }
+                        }} 
+                        className="space-y-4"
+                      >
+                        <div>
+                          <label className="text-xs font-bold text-slate-500 uppercase tracking-wide block mb-1">Your Full Name *</label>
+                          <input 
+                            type="text" 
+                            required
+                            value={contactName}
+                            onChange={(e) => setContactName(e.target.value)}
+                            placeholder="John Doe"
+                            className="w-full bg-white border border-slate-200 rounded-lg p-3 text-sm focus:outline-none focus:border-[#004aad] transition-colors"
+                          />
+                        </div>
+                        
+                        <div>
+                          <label className="text-xs font-bold text-slate-500 uppercase tracking-wide block mb-1">Email Address *</label>
+                          <input 
+                            type="email" 
+                            required
+                            value={contactEmail}
+                            onChange={(e) => setContactEmail(e.target.value)}
+                            placeholder="john@example.com"
+                            className="w-full bg-white border border-slate-200 rounded-lg p-3 text-sm focus:outline-none focus:border-[#004aad] transition-colors"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-xs font-bold text-slate-500 uppercase tracking-wide block mb-1">Subject</label>
+                          <input 
+                            type="text" 
+                            value={contactSubject}
+                            onChange={(e) => setContactSubject(e.target.value)}
+                            placeholder="Subscription question, key error, etc."
+                            className="w-full bg-white border border-slate-200 rounded-lg p-3 text-sm focus:outline-none focus:border-[#004aad] transition-colors"
+                          />
+                        </div>
+                        
+                        <div>
+                          <label className="text-xs font-bold text-slate-500 uppercase tracking-wide block mb-1">Your Message *</label>
+                          <textarea 
+                            required
+                            rows={4}
+                            value={contactMessage}
+                            onChange={(e) => setContactMessage(e.target.value)}
+                            placeholder="Detail your question or academic feedback here..."
+                            className="w-full bg-white border border-slate-200 rounded-lg p-3 text-sm focus:outline-none focus:border-[#004aad] transition-colors"
+                          />
+                        </div>
+                        
+                        <button 
+                          type="submit"
+                          className="w-full py-3 rounded-lg bg-[#004aad] hover:bg-[#004aad]/90 text-white font-bold text-xs uppercase tracking-widest transition-all cursor-pointer"
+                        >
+                          Send Message
+                        </button>
+                      </form>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : currentPage === "terms" ? (
+              // TERMS & CONDITIONS PAGE
+              <div className="w-full bg-white border border-slate-200 rounded-2xl shadow-md p-6 md:p-10 flex flex-col gap-6 text-left animate-fade-in" id="terms-conditions-page">
+                <div>
+                  <h3 className="text-2xl md:text-3xl font-black text-slate-900 uppercase tracking-tight font-sans">
+                    {t("Terms & Conditions")}
+                  </h3>
+                  <div className="w-16 h-1 bg-[#004aad] mt-2 rounded-full" />
+                </div>
+                
+                <div className="space-y-4 text-sm text-slate-600 leading-relaxed font-sans max-h-[60vh] overflow-y-auto pr-2">
+                  <p><strong>Last Updated: July 2026</strong></p>
+                  <p>Welcome to MaziExam (the "Portal"). By accessing or utilizing any resource, job alert announcement, mock test drive simulator, or reference previous year questions (PYQs) booklets, you agree to comply with and be bound by the following Terms & Conditions:</p>
+                  
+                  <h4 className="font-bold text-slate-800 uppercase text-xs tracking-wider mt-4">1. Acceptance of Terms</h4>
+                  <p>By registering, logging in, or purchasing standard subscriptions, you declare full acceptance of these terms. If you do not accept, you must immediately terminate platform usage.</p>
+                  
+                  <h4 className="font-bold text-slate-800 uppercase text-xs tracking-wider mt-4">2. Sandbox Testing Disclaimer</h4>
+                  <p>MaziExam incorporates simulated premium validation gateways for academic research. All pricing amounts displayed (e.g. the ₹80/month selection pass) are mock transactions running inside secure test environments to demonstrate full academic workflows. No actual financial liabilities or credit card data are permanently recorded outside sandbox variables.</p>
+                  
+                  <h4 className="font-bold text-slate-800 uppercase text-xs tracking-wider mt-4">3. Private Educational Nature</h4>
+                  <p>MaziExam is a private educational training forum. We are NOT affiliated with, sponsored by, or endorsed by any government recruitment agency (including MPSC, UPSC, or SSC). Any resemblance to actual recruitment syllabi is strictly intended for study practice.</p>
+
+                  <h4 className="font-bold text-slate-800 uppercase text-xs tracking-wider mt-4">4. Intellectual Property & Fair Usage</h4>
+                  <p>Sample question banks, official syllabus guides, and past papers compiled here are curated strictly under public domain fair-use academic educational guidelines. Re-selling, scraping, or automatic querying of our platform servers is strictly prohibited.</p>
+                </div>
+              </div>
+            ) : currentPage === "privacy" ? (
+              // PRIVACY POLICY PAGE
+              <div className="w-full bg-white border border-slate-200 rounded-2xl shadow-md p-6 md:p-10 flex flex-col gap-6 text-left animate-fade-in" id="privacy-policy-page">
+                <div>
+                  <h3 className="text-2xl md:text-3xl font-black text-slate-900 uppercase tracking-tight font-sans">
+                    {t("Privacy Policy")}
+                  </h3>
+                  <div className="w-16 h-1 bg-[#004aad] mt-2 rounded-full" />
+                </div>
+                
+                <div className="space-y-4 text-sm text-slate-600 leading-relaxed font-sans max-h-[60vh] overflow-y-auto pr-2">
+                  <p><strong>Last Updated: July 2026</strong></p>
+                  <p>At MaziExam, we respect the privacy of our students and competitive exam aspirants. This policy outlines how we safely handle your academic data:</p>
+                  
+                  <h4 className="font-bold text-slate-800 uppercase text-xs tracking-wider mt-4">1. Information Collection & Storage</h4>
+                  <p>We collect standard, safe credentials such as your email address when signing in through Google Firebase Authentication to keep your scores, daily practice streaks, and premium portal passes synced across all your devices.</p>
+                  
+                  <h4 className="font-bold text-slate-800 uppercase text-xs tracking-wider mt-4">2. Local Storage Variables</h4>
+                  <p>We store progress metrics, search queries, selected bookmarks, and local high scores on your native browser local storage for optimal speed and offline loading capability.</p>
+                  
+                  <h4 className="font-bold text-slate-800 uppercase text-xs tracking-wider mt-4">3. Absolute Data-Sharing Protection</h4>
+                  <p>We do NOT sell, lease, license, or exchange student details, search behavior, or mock scores to any third-party advertisers or recruitment brokers. Your training parameters remain entirely confidential.</p>
+
+                  <h4 className="font-bold text-slate-800 uppercase text-xs tracking-wider mt-4">4. Cookie Guidelines</h4>
+                  <p>MaziExam only reads operational session cookies strictly required for user authentication verification. No retargeting pixels are active.</p>
+                </div>
+              </div>
+            ) : (
+              // SITEMAP PAGE
+              <div className="w-full bg-white border border-slate-200 rounded-2xl shadow-md p-6 md:p-10 flex flex-col gap-8 text-left animate-fade-in" id="sitemap-page">
+                <div>
+                  <h3 className="text-2xl md:text-3xl font-black text-slate-900 uppercase tracking-tight font-sans">
+                    {t("Sitemap")}
+                  </h3>
+                  <div className="w-16 h-1 bg-[#004aad] mt-2 rounded-full" />
+                </div>
+                
+                <p className="text-sm text-slate-600">
+                  Easily navigate through all the primary channels and resources available on the MaziExam platform:
+                </p>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 font-sans">
+                  {/* Category 1 */}
+                  <div className="border border-slate-100 rounded-xl p-5 bg-slate-50 space-y-3">
+                    <h4 className="text-xs font-black uppercase text-[#004aad] tracking-widest font-mono">Exam Channels</h4>
+                    <ul className="space-y-2">
+                      <li>
+                        <button 
+                          onClick={() => { setCurrentPage("jobs"); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                          className="text-sm text-slate-700 hover:text-[#004aad] hover:underline font-bold transition-colors cursor-pointer text-left block w-full"
+                        >
+                          📰 {t("Job Alerts")}
+                        </button>
+                      </li>
+                      <li>
+                        <button 
+                          onClick={() => { setCurrentPage("exams"); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                          className="text-sm text-slate-700 hover:text-[#004aad] hover:underline font-bold transition-colors cursor-pointer text-left block w-full"
+                        >
+                          📅 {t("Upcoming Exams")}
+                        </button>
+                      </li>
+                      <li>
+                        <button 
+                          onClick={() => { setCurrentPage("pdf"); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                          className="text-sm text-slate-700 hover:text-[#004aad] hover:underline font-bold transition-colors cursor-pointer text-left block w-full"
+                        >
+                          📄 {t("Paper PDF")}
+                        </button>
+                      </li>
+                      <li>
+                        <button 
+                          onClick={() => { setCurrentPage("mock"); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                          className="text-sm text-slate-700 hover:text-[#004aad] hover:underline font-bold transition-colors cursor-pointer text-left block w-full"
+                        >
+                          📝 {t("Mock Test")}
+                        </button>
+                      </li>
+                    </ul>
+                  </div>
+
+                  {/* Category 2 */}
+                  <div className="border border-slate-100 rounded-xl p-5 bg-slate-50 space-y-3">
+                    <h4 className="text-xs font-black uppercase text-amber-600 tracking-widest font-mono">Premium Hub</h4>
+                    <ul className="space-y-2">
+                      <li>
+                        <button 
+                          onClick={() => { setCurrentPage("selection"); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                          className="text-sm text-slate-700 hover:text-amber-600 hover:underline font-bold transition-colors cursor-pointer text-left block w-full"
+                        >
+                          👑 {t("Get Selection")}
+                        </button>
+                      </li>
+                      <li>
+                        <span className="text-xs text-slate-400 block font-sans">
+                          Unlocks CSAT/GS speed runs, detailed PYQ booklets, and monthly target current affairs keys.
+                        </span>
+                      </li>
+                    </ul>
+                  </div>
+
+                  {/* Category 3 */}
+                  <div className="border border-slate-100 rounded-xl p-5 bg-slate-50 space-y-3">
+                    <h4 className="text-xs font-black uppercase text-slate-500 tracking-widest font-mono">Information Desk</h4>
+                    <ul className="space-y-2">
+                      <li>
+                        <button 
+                          onClick={() => { setCurrentPage("about"); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                          className="text-sm text-slate-700 hover:text-[#004aad] hover:underline font-semibold transition-colors cursor-pointer text-left block w-full"
+                        >
+                          ℹ️ {t("About Us")}
+                        </button>
+                      </li>
+                      <li>
+                        <button 
+                          onClick={() => { setCurrentPage("contact"); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                          className="text-sm text-slate-700 hover:text-[#004aad] hover:underline font-semibold transition-colors cursor-pointer text-left block w-full"
+                        >
+                          📞 {t("Contact Us")}
+                        </button>
+                      </li>
+                      <li>
+                        <button 
+                          onClick={() => { setCurrentPage("terms"); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                          className="text-sm text-slate-700 hover:text-[#004aad] hover:underline font-semibold transition-colors cursor-pointer text-left block w-full"
+                        >
+                          ⚖️ {t("Terms & Conditions")}
+                        </button>
+                      </li>
+                      <li>
+                        <button 
+                          onClick={() => { setCurrentPage("privacy"); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                          className="text-sm text-slate-700 hover:text-[#004aad] hover:underline font-semibold transition-colors cursor-pointer text-left block w-full"
+                        >
+                          🔒 {t("Privacy Policy")}
+                        </button>
+                      </li>
+                    </ul>
                   </div>
                 </div>
               </div>
@@ -2048,6 +2842,44 @@ export default function App() {
             </div>
           </div>
 
+          {/* Footer Navigation Links */}
+          <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-xs text-slate-400 font-bold uppercase tracking-wider mb-2" id="footer-navigation-links">
+            <button 
+              onClick={() => { setCurrentPage("about"); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+              className={`hover:text-white transition-colors cursor-pointer ${currentPage === "about" ? "text-white underline decoration-2 decoration-amber-500 underline-offset-4" : ""}`}
+            >
+              {t("About")}
+            </button>
+            <span className="text-slate-700 select-none">|</span>
+            <button 
+              onClick={() => { setCurrentPage("contact"); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+              className={`hover:text-white transition-colors cursor-pointer ${currentPage === "contact" ? "text-white underline decoration-2 decoration-amber-500 underline-offset-4" : ""}`}
+            >
+              {t("Contact")}
+            </button>
+            <span className="text-slate-700 select-none">|</span>
+            <button 
+              onClick={() => { setCurrentPage("terms"); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+              className={`hover:text-white transition-colors cursor-pointer ${currentPage === "terms" ? "text-white underline decoration-2 decoration-amber-500 underline-offset-4" : ""}`}
+            >
+              {t("Terms")}
+            </button>
+            <span className="text-slate-700 select-none">|</span>
+            <button 
+              onClick={() => { setCurrentPage("privacy"); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+              className={`hover:text-white transition-colors cursor-pointer ${currentPage === "privacy" ? "text-white underline decoration-2 decoration-amber-500 underline-offset-4" : ""}`}
+            >
+              {t("Privacy")}
+            </button>
+            <span className="text-slate-700 select-none">|</span>
+            <button 
+              onClick={() => { setCurrentPage("sitemap"); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+              className={`hover:text-white transition-colors cursor-pointer ${currentPage === "sitemap" ? "text-white underline decoration-2 decoration-amber-500 underline-offset-4" : ""}`}
+            >
+              {t("Sitemap")}
+            </button>
+          </div>
+
           {/* Footer Line & Copyright */}
           <div className="flex flex-col gap-4 text-center mt-2" id="footer-bottom-panel">
             <hr className="border-white/10 w-full" id="footer-horizontal-separator" />
@@ -2058,6 +2890,8 @@ export default function App() {
 
         </div>
       </footer>
+
+      <GauriChatBot setCurrentPage={setCurrentPage} currentPage={currentPage} />
 
       {/* Auth Modal for sign in / registration & profile */}
       <AuthModal 

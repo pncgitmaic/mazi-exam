@@ -6,7 +6,7 @@ export interface ExamDetail {
   eligibility: string;
   syllabus: string[];
   link: string;
-  category: "UPSC" | "MPSC" | "Railway Exams" | "SSC Exams" | "Banking Exams" | "Defence Exams" | "Clerk Exams" | "State Exams" | "Private Exams";
+  category: "UPSC" | "MPSC" | "Railway Exams" | "SSC Exams" | "Banking Exams" | "Defence Exams" | "Clerk Exams" | "State Exams" | "Private Exams" | "Medical Exams" | "Engineering Exams" | "College Exams";
   isUpcoming: boolean;
 }
 
@@ -19,7 +19,7 @@ export interface PaperPdf {
   fileSize: string;
   downloadUrl: string;
   pages: string[];
-  category: "UPSC" | "MPSC" | "Railway Exams" | "SSC Exams" | "Banking Exams" | "Defence Exams" | "Clerk Exams" | "State Exams" | "Private Exams";
+  category: "UPSC" | "MPSC" | "Railway Exams" | "SSC Exams" | "Banking Exams" | "Defence Exams" | "Clerk Exams" | "State Exams" | "Private Exams" | "Medical Exams" | "Engineering Exams" | "College Exams";
 }
 
 export interface MockQuestion {
@@ -35,7 +35,7 @@ export interface MockTest {
   title: string;
   durationMinutes: number;
   questions: MockQuestion[];
-  category: "UPSC" | "MPSC" | "Railway Exams" | "SSC Exams" | "Banking Exams" | "Defence Exams" | "Clerk Exams" | "State Exams" | "Private Exams";
+  category: "UPSC" | "MPSC" | "Railway Exams" | "SSC Exams" | "Banking Exams" | "Defence Exams" | "Clerk Exams" | "State Exams" | "Private Exams" | "Medical Exams" | "Engineering Exams" | "College Exams";
 }
 
 export const upcomingExams: ExamDetail[] = [
@@ -212,6 +212,51 @@ export const upcomingExams: ExamDetail[] = [
     link: "https://www.infosys.com/careers/",
     category: "Private Exams",
     isUpcoming: false
+  },
+  {
+    id: "exam-medical-1",
+    title: "NEET UG Entrance Exam 2026",
+    code: "NEET-UG-2026",
+    date: "May 3, 2026",
+    eligibility: "Completed 10+2 with Physics, Chemistry, Biology/Biotechnology and English.",
+    syllabus: [
+      "Physics (Mechanics, Thermodynamics, Electrodynamics)",
+      "Chemistry (Organic, Inorganic, Physical Chemistry)",
+      "Biology (Diversity in Living World, Cell Structure, Plant & Human Physiology, Genetics)"
+    ],
+    link: "https://neet.nta.nic.in",
+    category: "Medical Exams",
+    isUpcoming: true
+  },
+  {
+    id: "exam-engineering-1",
+    title: "JEE Main (Joint Entrance Examination) 2026",
+    code: "JEE-MAIN-2026",
+    date: "April 18, 2026",
+    eligibility: "Passed class 12th or equivalent exam with Physics, Mathematics, and Chemistry.",
+    syllabus: [
+      "Mathematics (Calculus, Coordinate Geometry, Algebra, Vectors)",
+      "Physics (Mechanics, Wave Motion, Modern Physics, Optics)",
+      "Chemistry (Physical, Organic & Inorganic core syllabus)"
+    ],
+    link: "https://jeemain.nta.nic.in",
+    category: "Engineering Exams",
+    isUpcoming: true
+  },
+  {
+    id: "exam-college-1",
+    title: "CUET UG (Common University Entrance Test) 2026",
+    code: "CUET-UG-2026",
+    date: "May 20, 2026",
+    eligibility: "Passed or appearing in Class 12th/equivalent exam from any recognized Board.",
+    syllabus: [
+      "Section IA & IB: Languages (Reading comprehension, literary aptitude)",
+      "Section II: Domain Specific Subjects (NCERT Class 12 syllabus map)",
+      "Section III: General Test (General Knowledge, Current Affairs, Mental Ability)"
+    ],
+    link: "https://cuet.samarth.ac.in",
+    category: "College Exams",
+    isUpcoming: true
   }
 ];
 
@@ -348,6 +393,51 @@ export const paperPdfs: PaperPdf[] = [
       "Q1. Which of the following statements about the G20 is/are correct?\n1. It was established in 1999.\n2. India held the presidency in 2023.\nSelect the correct answer:\n(A) 1 only\n(B) 2 only\n(C) Both 1 and 2\n(D) Neither 1 nor 2"
     ],
     category: "UPSC"
+  },
+  {
+    id: "pdf-medical-1",
+    title: "NEET Biology Solved Paper (2025)",
+    year: "2025",
+    subject: "Biology",
+    questionsCount: 90,
+    fileSize: "2.8 MB",
+    downloadUrl: "#",
+    pages: [
+      "NEET UG 2025 - Chemistry & Biology PYQ Booklet",
+      "Q1. Which of the following is correct about the cell wall of Diatoms?\n(A) Siliceous and indestructible\n(B) Cellulosic with pectin\n(C) Chitinous wall\n(D) Proteinaceous pellicle",
+      "Q2. The process of translation in protein synthesis occurs in:\n(A) Ribosome\n(B) Nucleus\n(C) Mitochondria\n(D) Lysosome"
+    ],
+    category: "Medical Exams"
+  },
+  {
+    id: "pdf-engineering-1",
+    title: "JEE Main Physics & Chemistry PYQs (2025)",
+    year: "2025",
+    subject: "Physics",
+    questionsCount: 60,
+    fileSize: "3.2 MB",
+    downloadUrl: "#",
+    pages: [
+      "JEE Main 2025 Solved Shift Paper",
+      "Q1. A body of mass 5 kg is moving in a circle of radius 1 m with angular speed 2 rad/s. The centripetal force is:\n(A) 20 N\n(B) 10 N\n(C) 5 N\n(D) 15 N",
+      "Q2. What is the hybridization of carbon in methane (CH4)?\n(A) sp3\n(B) sp2\n(C) sp\n(D) dsp2"
+    ],
+    category: "Engineering Exams"
+  },
+  {
+    id: "pdf-college-1",
+    title: "CUET General Mental Ability Key (2025)",
+    year: "2025",
+    subject: "General Test",
+    questionsCount: 50,
+    fileSize: "1.5 MB",
+    downloadUrl: "#",
+    pages: [
+      "CUET UG Solved General Section",
+      "Q1. If A is coded as 1, B as 2, and CAB is coded as 6, how is BED coded?\n(A) 11\n(B) 12\n(C) 9\n(D) 15",
+      "Q2. Find the odd one out from the given list: Lion, Tiger, Leopard, Cow.\n(A) Cow\n(B) Lion\n(C) Tiger\n(D) Leopard"
+    ],
+    category: "College Exams"
   }
 ];
 
@@ -550,6 +640,72 @@ export const mockTests: MockTest[] = [
       }
     ],
     category: "UPSC"
+  },
+  {
+    id: "test-medical-1",
+    title: "NEET Biology High-Yield Mock 1",
+    durationMinutes: 15,
+    questions: [
+      {
+        id: 1,
+        question: "Which of the following is considered as the powerhouse of the cell?",
+        options: ["Mitochondria", "Ribosome", "Nucleus", "Golgi Apparatus"],
+        correctAnswer: 0,
+        explanation: "Mitochondria are known as the powerhouse of the cell because they generate most of the cell's supply of adenosine triphosphate (ATP)."
+      },
+      {
+        id: 2,
+        question: "The chemical component present in the cell wall of fungi is:",
+        options: ["Chitin", "Cellulose", "Peptidoglycan", "Hemicellulose"],
+        correctAnswer: 0,
+        explanation: "The fungal cell wall is a complex and flexible structure composed of chitin, glucans, and proteins."
+      }
+    ],
+    category: "Medical Exams"
+  },
+  {
+    id: "test-engineering-1",
+    title: "JEE Main Physics Speed Run Mock",
+    durationMinutes: 15,
+    questions: [
+      {
+        id: 1,
+        question: "What is the SI unit of electric charge?",
+        options: ["Coulomb", "Ampere", "Volt", "Ohm"],
+        correctAnswer: 0,
+        explanation: "The Coulomb (symbol: C) is the International System of Units (SI) unit of electric charge."
+      },
+      {
+        id: 2,
+        question: "An object is placed at the principal focus of a concave mirror. The image is formed at:",
+        options: ["Infinity", "Focus", "Center of curvature", "Behind the mirror"],
+        correctAnswer: 0,
+        explanation: "When an object is placed at the focus of a concave mirror, the reflected rays are parallel and meet at infinity."
+      }
+    ],
+    category: "Engineering Exams"
+  },
+  {
+    id: "test-college-1",
+    title: "CUET General Mental Ability Mock",
+    durationMinutes: 10,
+    questions: [
+      {
+        id: 1,
+        question: "Complete the series: 3, 6, 12, 24, ?",
+        options: ["48", "36", "30", "40"],
+        correctAnswer: 0,
+        explanation: "The series is doubled at each step: 3*2=6, 6*2=12, 12*2=24, 24*2=48."
+      },
+      {
+        id: 2,
+        question: "If 'YELLOW' is coded as 'BLUE', and 'BLUE' is coded as 'RED', what is the color of clear sky?",
+        options: ["RED", "BLUE", "YELLOW", "WHITE"],
+        correctAnswer: 0,
+        explanation: "The color of a clear sky is Blue. Since 'BLUE' is coded as 'RED', the correct answer is RED."
+      }
+    ],
+    category: "College Exams"
   }
 ];
 
@@ -759,6 +915,45 @@ export const jobAlerts: JobAlert[] = [
     qualification: "B.Tech in Computer Science, Information Technology, or Telecommunications.",
     link: "https://careers.jio.com",
     details: "Join the largest telecom network operator in India. Jio is hiring software and networking graduates to work on high-capacity cloud infrastructures, 5G core optimization, and enterprise solutions."
+  },
+  {
+    id: "job-medical-1",
+    title: "AIIMS Resident Medical Officers Recruitment 2026",
+    category: "Government",
+    organization: "All India Institute of Medical Sciences (AIIMS)",
+    postName: "Junior Resident & Senior Resident Doctors",
+    vacancies: "280 Posts",
+    salary: "₹67,700 - ₹2,08,700/month (Level 11)",
+    lastDate: "September 1, 2026",
+    qualification: "MBBS Degree / MD / MS / BDS from an NMC recognized medical college.",
+    link: "https://www.aiimsexams.ac.in",
+    details: "AIIMS is conducting open recruitments for Resident Doctor positions. Candidates will be assessed on their clinical knowledge, emergency care standards, and academic record."
+  },
+  {
+    id: "job-engineering-1",
+    title: "ISRO Graduate Engineer Trainee & Scientist SC 2026",
+    category: "Government",
+    organization: "Indian Space Research Organisation (ISRO)",
+    postName: "Scientist/Engineer 'SC' (Aeronautical & Space Technology)",
+    vacancies: "112 Posts",
+    salary: "₹56,100 - ₹1,77,500/month",
+    lastDate: "August 30, 2026",
+    qualification: "B.E. / B.Tech in Engineering with minimum 65% aggregate score.",
+    link: "https://www.isro.gov.in",
+    details: "Outstanding career opportunity for engineering graduates. Selected engineers will join pioneering projects in deep space communication, spacecraft mechanics, and satellite propulsion."
+  },
+  {
+    id: "job-college-1",
+    title: "Mumbai University Faculty & Academic Associates 2026",
+    category: "Government",
+    organization: "University of Mumbai",
+    postName: "Assistant Professor & Junior Lecturer",
+    vacancies: "75 Posts",
+    salary: "₹45,000 - ₹95,000/month",
+    lastDate: "September 15, 2026",
+    qualification: "Postgraduate degree in respective field with UGC NET / SET qualification.",
+    link: "https://mu.ac.in",
+    details: "Mumbai University invites applications for diverse academic and research positions. The focus is on standardizing student instruction, current syllabus mapping, and leading experimental laboratories."
   }
 ];
 
