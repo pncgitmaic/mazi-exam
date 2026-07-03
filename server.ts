@@ -8,36 +8,35 @@ import { GoogleGenAI } from "@google/genai";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-async function startServer() {
-  const app = express();
-  const PORT = 3000;
+const app = express();
+const PORT = 3000;
 
-  app.use(express.json());
+app.use(express.json());
 
-  // Gauri AI Chat API route
-  app.post("/api/gauri-chat", async (req, res) => {
-    try {
-      const { messages, language } = req.body;
-      if (!messages || !Array.isArray(messages)) {
-        return res.status(400).json({ error: "Invalid messages array provided." });
-      }
+// Gauri AI Chat API route
+app.post("/api/gauri-chat", async (req, res) => {
+  try {
+    const { messages, language } = req.body;
+    if (!messages || !Array.isArray(messages)) {
+      return res.status(400).json({ error: "Invalid messages array provided." });
+    }
 
-      const key = process.env.GEMINI_API_KEY;
-      if (!key) {
-        return res.status(200).json({ 
-          text: "Gauri is offline right now! Please configure the GEMINI_API_KEY environment variable in the Secrets tab to awaken her." 
-        });
-      }
+    const key = process.env.GEMINI_API_KEY;
+    if (!key) {
+      return res.status(200).json({ 
+        text: "Gauri is offline right now! Please configure the GEMINI_API_KEY environment variable in the Secrets tab to awaken her." 
+      });
+    }
 
-      const ai = new GoogleGenAI({ apiKey: key });
+    const ai = new GoogleGenAI({ apiKey: key });
 
-      // Format messages for @google/genai
-      const contents = messages.map((m: any) => ({
-        role: m.role === "assistant" || m.role === "model" ? "model" : "user",
-        parts: [{ text: m.text || m.content || "" }]
-      }));
+    // Format messages for @google/genai
+    const contents = messages.map((m: any) => ({
+      role: m.role === "assistant" || m.role === "model" ? "model" : "user",
+      parts: [{ text: m.text || m.content || "" }]
+    }));
 
-      let systemInstruction = `You are Gauri AI, a virtual academic guide and motivational mentor for Maharashtra state board and government competitive exam aspirants (MPSC, UPSC, Police Bharti, Talathi, SSC, etc.).
+    let systemInstruction = `You are Gauri AI, a virtual academic guide and motivational mentor for Maharashtra state board and government competitive exam aspirants (MPSC, UPSC, Police Bharti, Talathi, SSC, etc.).
 Your tone is highly encouraging, positive, empathetic, and motivational. Use high-vibe, uplifting language to cheer on students struggling with exam anxiety, low scores, or exam pressure. Keep your answers clear, motivating, and actionable.
 You speak fluidly in English, Marathi, or Hindi based on what the user uses or prefers. Feel free to mix them in a helpful, conversational Indian way (Hinglish/Marathinglish is perfectly fine!).
 
@@ -57,36 +56,37 @@ When students ask for:
 
 Remember: Be a powerful source of motivation! If a student feels like giving up, revive their spirit with inspirational words. You are Gauri, their friendly, ever-present academic mentor. Keep responses relatively concise and punchy so they read well in a tiny floating chat box on a phone or computer!`;
 
-      // Inject language-specific mandate guidelines
-      if (language === "mr") {
-        systemInstruction += "\n\nCRITICAL LANGUAGE MANDATE: The user has explicitly selected MARATHI as their preferred language. You MUST respond strictly in pure, motivational, and grammatically correct Marathi. Avoid English sentences, but feel free to refer to exam names or technical terms in standard English if helpful.";
-      } else if (language === "hi") {
-        systemInstruction += "\n\nCRITICAL LANGUAGE MANDATE: The user has explicitly selected HINDI as their preferred language. You MUST respond strictly in beautiful, supportive, and motivating Hindi. Avoid English sentences, but feel free to refer to exam names or technical terms in standard English if helpful.";
-      } else if (language === "en") {
-        systemInstruction += "\n\nCRITICAL LANGUAGE MANDATE: The user has explicitly selected ENGLISH as their preferred language. You MUST respond strictly in grammatically correct, encouraging, and fluent English.";
-      } else {
-        systemInstruction += "\n\nCRITICAL LANGUAGE MANDATE: Respond fluidly in English, Marathi, or Hindi based on what the user uses or prefers. Feel free to mix them in a helpful, conversational Indian way (Hinglish/Marathinglish is perfectly fine!). Default to a hybrid, warm, multilingual tone.";
-      }
-
-      const result = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: contents,
-        config: {
-          systemInstruction: systemInstruction,
-          temperature: 0.7,
-        }
-      });
-
-      const reply = result.text || "I am processing your dreams! Can you please repeat that with more energy?";
-      res.json({ text: reply });
-    } catch (error: any) {
-      console.error("Gauri AI Error:", error);
-      res.status(500).json({ error: error.message || "Failed to communicate with Gauri AI." });
+    // Inject language-specific mandate guidelines
+    if (language === "mr") {
+      systemInstruction += "\n\nCRITICAL LANGUAGE MANDATE: The user has explicitly selected MARATHI as their preferred language. You MUST respond strictly in pure, motivational, and grammatically correct Marathi. Avoid English sentences, but feel free to refer to exam names or technical terms in standard English if helpful.";
+    } else if (language === "hi") {
+      systemInstruction += "\n\nCRITICAL LANGUAGE MANDATE: The user has explicitly selected HINDI as their preferred language. You MUST respond strictly in beautiful, supportive, and motivating Hindi. Avoid English sentences, but feel free to refer to exam names or technical terms in standard English if helpful.";
+    } else if (language === "en") {
+      systemInstruction += "\n\nCRITICAL LANGUAGE MANDATE: The user has explicitly selected ENGLISH as their preferred language. You MUST respond strictly in grammatically correct, encouraging, and fluent English.";
+    } else {
+      systemInstruction += "\n\nCRITICAL LANGUAGE MANDATE: Respond fluidly in English, Marathi, or Hindi based on what the user uses or prefers. Feel free to mix them in a helpful, conversational Indian way (Hinglish/Marathinglish is perfectly fine!). Default to a hybrid, warm, multilingual tone.";
     }
-  });
 
-  // Serve static files / Vite middleware
-  if (process.env.NODE_ENV !== "production") {
+    const result = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: contents,
+      config: {
+        systemInstruction: systemInstruction,
+        temperature: 0.7,
+      }
+    });
+
+    const reply = result.text || "I am processing your dreams! Can you please repeat that with more energy?";
+    res.json({ text: reply });
+  } catch (error: any) {
+    console.error("Gauri AI Error:", error);
+    res.status(500).json({ error: error.message || "Failed to communicate with Gauri AI." });
+  }
+});
+
+// Serve static files / Vite middleware
+async function setupViteOrStatic() {
+  if (process.env.NODE_ENV !== "production" && !process.env.VERCEL) {
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
@@ -99,10 +99,14 @@ Remember: Be a powerful source of motivation! If a student feels like giving up,
       res.sendFile(path.join(distPath, "index.html"));
     });
   }
-
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-  });
 }
 
-startServer();
+setupViteOrStatic().then(() => {
+  if (!process.env.VERCEL) {
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`Server running on http://localhost:${PORT}`);
+    });
+  }
+});
+
+export default app;
