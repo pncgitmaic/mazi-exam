@@ -22,7 +22,9 @@ service cloud.firestore {
 
     // USER PURCHASES SCHEMA AND VAL
     function isValidPurchaseDoc(data) {
-      return data.userId is string 
+      return data.keys().hasAll(['userId', 'hasPortalPass', 'unlockedPacks'])
+        && data.keys().size() == 3
+        && data.userId is string 
         && data.userId.size() <= 128
         && data.hasPortalPass is bool
         && data.unlockedPacks is list
@@ -40,12 +42,22 @@ service cloud.firestore {
       allow update: if isOwner(userId)
         && isValidPurchaseDoc(request.resource.data)
         && request.resource.data.userId == request.auth.uid
-        && request.resource.data.userId == resource.data.userId;
+        && request.resource.data.userId == resource.data.userId
+        && (
+          // Action: Update portal pass activation
+          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['hasPortalPass'])) ||
+          // Action: Update unlocked premium packs
+          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['unlockedPacks'])) ||
+          // Action: Update both (full portal upgrade)
+          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['hasPortalPass', 'unlockedPacks']))
+        );
     }
 
     // TEST ATTEMPTS SCHEMA AND VAL
     function isValidTestAttempt(data) {
-      return data.userId is string
+      return data.keys().hasAll(['userId', 'testId', 'testTitle', 'score', 'totalQuestions', 'timestamp'])
+        && data.keys().size() == 6
+        && data.userId is string
         && data.userId.size() <= 128
         && data.testId is string
         && data.testId.size() <= 128

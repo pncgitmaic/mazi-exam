@@ -18,7 +18,9 @@ import {
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
   signOut, 
-  updateProfile 
+  updateProfile,
+  OperationType,
+  handleFirestoreError
 } from "../firebase";
 import { collection, getDocs, query, where, orderBy } from "firebase/firestore";
 
@@ -77,6 +79,7 @@ export function AuthModal({ isOpen, onClose, currentUser }: AuthModalProps) {
       setAttempts(fetched);
     } catch (e) {
       console.error("Error loading attempts:", e);
+      handleFirestoreError(e, OperationType.GET, "test_attempts");
     } finally {
       setLoadingAttempts(false);
     }

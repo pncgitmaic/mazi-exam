@@ -43,7 +43,7 @@ import {
   premiumPacks,
   PremiumExamPack
 } from "./data";
-import { auth, db, onAuthStateChanged, collection, addDoc, doc, getDoc, setDoc, User as FirebaseUser } from "./firebase";
+import { auth, db, onAuthStateChanged, collection, addDoc, doc, getDoc, setDoc, User as FirebaseUser, OperationType, handleFirestoreError } from "./firebase";
 import { AuthModal } from "./components/AuthModal";
 import { GauriChatBot } from "./components/GauriChatBot";
 
@@ -539,7 +539,10 @@ export default function App() {
               userId: currentUser.uid,
               hasPortalPass: initPass,
               unlockedPacks: initPacks
-            }).catch(e => console.error("Error creating purchases document:", e));
+            }).catch(e => {
+              console.error("Error creating purchases document:", e);
+              handleFirestoreError(e, OperationType.WRITE, `user_purchases/${currentUser.uid}`);
+            });
           }
         })
         .catch((err) => {
@@ -549,6 +552,8 @@ export default function App() {
           const localPacks = localStorage.getItem(`unlockedPacks_${currentUser.uid}`);
           setHasPortalPass(localPass === "true");
           setUnlockedPacks(localPacks ? JSON.parse(localPacks) : []);
+          
+          handleFirestoreError(err, OperationType.GET, `user_purchases/${currentUser.uid}`);
         })
         .finally(() => {
           setLoadingPurchases(false);
@@ -602,6 +607,7 @@ export default function App() {
       console.log("Purchases saved to Firestore successfully!");
     } catch (err) {
       console.error("Error saving purchases to Firestore:", err);
+      handleFirestoreError(err, OperationType.WRITE, `user_purchases/${currentUser.uid}`);
     }
   };
 
@@ -736,6 +742,7 @@ export default function App() {
         console.log("Mock test saved to cloud successfully!");
       } catch (err) {
         console.error("Error saving mock test results:", err);
+        handleFirestoreError(err, OperationType.CREATE, "test_attempts");
       }
     }
   };
