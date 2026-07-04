@@ -433,7 +433,11 @@ export const additionalTranslations: Record<"en" | "hi" | "mr", Record<string, s
     "Real Screen Layout": "वास्तविक स्क्रीन लेआउट",
     "Sectional Time Tracking": "अनुभागीय समय ट्रैकिंग",
     "Detailed Answer Explanations": "विस्तृत उत्तर स्पष्टीकरण",
-    "Live Exam View": "लाइव परीक्षा दृश्य"
+    "Live Exam View": "लाइव परीक्षा दृश्य",
+    "We use cookies to enhance your experience. By continuing to visit this site you agree to our use of cookies.": "हम आपके अनुभव को बेहतर बनाने के लिए कुकीज़ का उपयोग करते हैं। इस साइट पर आना जारी रखकर आप हमारे कुकीज़ के उपयोग से सहमत होते हैं।",
+    "Accept": "स्वीकार करें",
+    "Decline": "अस्वीकार करें",
+    "Learn More": "अधिक जानें"
   },
   mr: {
     // Upcoming Exams
@@ -868,6 +872,10 @@ export const additionalTranslations: Record<"en" | "hi" | "mr", Record<string, s
     "Real Screen Layout": "वास्तविक स्क्रीन लेआउट",
     "Sectional Time Tracking": "विभागीय वेळ ट्रॅकिंग",
     "Detailed Answer Explanations": "तपशीलवार उत्तर स्पष्टीकरण",
-    "Live Exam View": "लाईव्ह परीक्षा देखावा"
+    "Live Exam View": "लाईव्ह परीक्षा देखावा",
+    "We use cookies to enhance your experience. By continuing to visit this site you agree to our use of cookies.": "आम्ही तुमचा अनुभव सुधारण्यासाठी कुकीज वापरतो. या साइटला भेट देणे सुरू ठेवून तुम्ही आमच्या कुकीजच्या वापराशी सहमत आहात.",
+    "Accept": "स्वीकारा",
+    "Decline": "नाकारा",
+    "Learn More": "अधिक जाणून घ्या"
   }
 };

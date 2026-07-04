@@ -743,6 +743,32 @@ export default function App() {
   const [currentPage, setCurrentPage] = useState<
     "jobs" | "exams" | "pdf" | "mock" | "selection" | "about" | "contact" | "terms" | "privacy" | "sitemap" | "results" | "classes" | "dashboard" | "job-detail" | "mock-detail" | "pdf-detail"
   >("jobs");
+
+  // Cookie Consent Banner State
+  const [showConsentBanner, setShowConsentBanner] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem("cookie-consent-accepted") === null;
+    } catch (e) {
+      return false;
+    }
+  });
+
+  const handleConsentDecision = (accepted: boolean) => {
+    try {
+      localStorage.setItem("cookie-consent-accepted", accepted ? "true" : "false");
+    } catch (e) {}
+    setShowConsentBanner(false);
+    
+    // Update Google Consent Mode dynamically if gtag is loaded
+    if (typeof (window as any).gtag === "function") {
+      (window as any).gtag('consent', 'update', {
+        'ad_storage': accepted ? 'granted' : 'denied',
+        'ad_user_data': accepted ? 'granted' : 'denied',
+        'ad_personalization': accepted ? 'granted' : 'denied',
+        'analytics_storage': accepted ? 'granted' : 'denied'
+      });
+    }
+  };
   
   // Selected detail items
   const [selectedJob, setSelectedJob] = useState<JobAlert | null>(null);
@@ -6524,6 +6550,52 @@ export default function App() {
               </div>
 
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cookie Consent Banner */}
+      {showConsentBanner && (
+        <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:max-w-md bg-slate-900 text-slate-100 rounded-xl shadow-2xl border border-slate-800 p-4 z-[9999] flex flex-col gap-3 animate-fade-in" id="cookie-consent-popup">
+          <div className="flex items-start gap-3">
+            <div className="bg-amber-400/10 p-2 rounded-lg border border-amber-400/20 text-amber-400 shrink-0">
+              <svg className="w-5 h-5 fill-none stroke-current animate-pulse" viewBox="0 0 24 24" strokeWidth="2">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" />
+                <path d="M12 2a10 10 0 1 0 10 10" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-slate-200 leading-normal">
+                {t("We use cookies to enhance your experience. By continuing to visit this site you agree to our use of cookies.")}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center justify-end gap-2 text-xs font-bold pt-1">
+            <button 
+              onClick={() => {
+                setCurrentPage("privacy");
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="text-slate-400 hover:text-slate-200 px-3 py-1.5 transition-colors cursor-pointer"
+              id="cookie-consent-learn-more"
+            >
+              {t("Learn More")}
+            </button>
+            <button 
+              onClick={() => handleConsentDecision(false)}
+              className="text-slate-400 hover:text-slate-200 bg-slate-800 hover:bg-slate-700/80 px-3 py-1.5 rounded-lg border border-slate-700 transition-colors cursor-pointer"
+              id="cookie-consent-decline"
+            >
+              {t("Decline")}
+            </button>
+            <button 
+              onClick={() => handleConsentDecision(true)}
+              className="bg-amber-500 hover:bg-amber-600 text-slate-950 px-4 py-1.5 rounded-lg transition-all shadow-md cursor-pointer"
+              id="cookie-consent-accept"
+            >
+              {t("Accept")}
+            </button>
           </div>
         </div>
       )}

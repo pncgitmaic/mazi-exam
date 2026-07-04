@@ -8,8 +8,28 @@
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
+      
+      // Dynamic consent state setup before GTM/gtag initialization
+      try {
+        var consentAccepted = localStorage.getItem('cookie-consent-accepted');
+        var consentState = consentAccepted === 'true' ? 'granted' : 'denied';
+        
+        gtag('consent', 'default', {
+          'ad_storage': consentState,
+          'ad_user_data': consentState,
+          'ad_personalization': consentState,
+          'analytics_storage': consentState
+        });
+      } catch (e) {
+        gtag('consent', 'default', {
+          'ad_storage': 'denied',
+          'ad_user_data': 'denied',
+          'ad_personalization': 'denied',
+          'analytics_storage': 'denied'
+        });
+      }
 
+      gtag('js', new Date());
       gtag('config', 'G-N7CLHJZNC1');
     </script>
     <link rel="icon" type="image/jpeg" href="https://isxhcatn0reqvwnv.public.blob.vercel-storage.com/mazi%20exam%20logo.jpg" />
