@@ -1503,7 +1503,7 @@ export default function App() {
           {/* Left: Logo & Stacked Text */}
           <div className="flex items-center gap-1.5 sm:gap-3 cursor-pointer" id="header-logo-container" onClick={() => setCurrentPage("jobs")}>
             <AppLogo 
-              className="h-10 sm:h-16 lg:h-20 w-auto object-contain transition-all"
+              className="h-14 sm:h-20 lg:h-24 w-auto object-contain transition-all"
               id="header-logo-img"
             />
             <div className="flex flex-col text-left" id="header-title-text">
