@@ -45,6 +45,7 @@ import {
   premiumPacks,
   PremiumExamPack
 } from "./data";
+import { additionalTranslations } from "./additionalTranslations";
 import { auth, db, onAuthStateChanged, collection, addDoc, doc, getDoc, setDoc, getDocs, query, where, orderBy, updateProfile, sendPasswordResetEmail, User as FirebaseUser, OperationType, handleFirestoreError } from "./firebase";
 import { AuthModal } from "./components/AuthModal";
 import { GauriChatBot } from "./components/GauriChatBot";
@@ -666,6 +667,10 @@ export default function App() {
     const langTranslations = translations[currentLang];
     if (langTranslations && langTranslations[text]) {
       return langTranslations[text];
+    }
+    const extraTranslations = additionalTranslations[currentLang];
+    if (extraTranslations && extraTranslations[text]) {
+      return extraTranslations[text];
     }
     return text;
   };
@@ -2103,31 +2108,31 @@ export default function App() {
                                   ? "bg-amber-50 text-amber-600 border-amber-100"
                                   : "bg-indigo-50 text-indigo-600 border-indigo-100"
                               }`}>
-                                {job.category}
+                                {t(job.category)}
                               </span>
                               <span className="font-mono text-xs text-slate-500 font-bold tracking-wider">
-                                {job.organization}
+                                {t(job.organization)}
                               </span>
                             </div>
                             <h3 className="text-base md:text-lg font-bold text-slate-900 group-hover:text-[#004aad] transition-colors leading-snug">
-                              {job.title}
+                              {t(job.title)}
                             </h3>
                             <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs text-slate-500">
                               <span className="flex items-center gap-1">
                                 <Briefcase size={12} className="text-[#004aad]" />
-                                {job.postName}
+                                {t(job.postName)}
                               </span>
                               <span className="flex items-center gap-1">
                                 <Users size={12} className="text-[#004aad]" />
-                                {job.vacancies}
+                                {t(job.vacancies)}
                               </span>
                               <span className="flex items-center gap-1">
                                 <GraduationCap size={12} className="text-[#004aad]" />
-                                {job.qualification}
+                                {t(job.qualification)}
                               </span>
                               <span className="flex items-center gap-1 text-red-600 font-semibold">
                                 <Clock size={12} />
-                                Last Date: {job.lastDate}
+                                {t("Last Date")}: {t(job.lastDate)}
                               </span>
                             </div>
                           </div>
@@ -2153,7 +2158,7 @@ export default function App() {
                         <div className="flex items-center gap-2 px-4 py-3 mb-4 bg-[#004aad] border-2 border-blue-300 text-white rounded-lg shadow-md">
                           <Calendar size={20} className="text-white shrink-0" />
                           <h4 className="text-sm md:text-base font-extrabold uppercase tracking-wider text-white">
-                            Upcoming Exam Calendar
+                            {t("Upcoming Exam Calendar")}
                           </h4>
                         </div>
                         <div className="space-y-3">
@@ -2165,17 +2170,17 @@ export default function App() {
                             >
                               <div className="flex items-center justify-between gap-1">
                                 <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wider bg-amber-50 px-1.5 py-0.5 rounded font-mono">
-                                  {exam.category}
+                                  {t(exam.category)}
                                 </span>
                                 <span className="text-[9px] text-slate-400 font-mono font-bold">
-                                  {exam.code}
+                                  {t(exam.code)}
                                 </span>
                               </div>
                               <p className="text-[11px] font-bold text-slate-700 mt-1 leading-tight group-hover/item:text-[#004aad] transition-colors line-clamp-1">
-                                {exam.title}
+                                {t(exam.title)}
                               </p>
                               <p className="text-[9px] text-slate-400 mt-0.5 flex items-center gap-1 font-mono">
-                                <Clock size={10} /> Date: {exam.date}
+                                <Clock size={10} /> {t("Exam Date")}: {t(exam.date)}
                               </p>
                             </div>
                           ))}
@@ -2188,7 +2193,7 @@ export default function App() {
                         }}
                         className="mt-4 w-full bg-[#004aad]/10 hover:bg-[#004aad] text-[#004aad] hover:text-white font-bold text-xs py-2.5 rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                       >
-                        More Exams <ArrowRight size={12} />
+                        {t("More Exams")} <ArrowRight size={12} />
                       </button>
                     </div>
 
@@ -2198,7 +2203,7 @@ export default function App() {
                         <div className="flex items-center gap-2 px-4 py-3 mb-4 bg-[#004aad] border-2 border-blue-300 text-white rounded-lg shadow-md">
                           <Award size={20} className="text-white shrink-0" />
                           <h4 className="text-sm md:text-base font-extrabold uppercase tracking-wider text-white">
-                            Latest Declared Results
+                            {t("Latest Declared Results")}
                           </h4>
                         </div>
                         <div className="space-y-3">
@@ -2218,17 +2223,17 @@ export default function App() {
                             >
                               <div className="flex items-center justify-between gap-1">
                                 <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider bg-emerald-50 px-1.5 py-0.5 rounded font-mono">
-                                  {result.type}
+                                  {t(result.type)}
                                 </span>
                                 <span className="text-[9px] text-emerald-500 font-mono font-bold uppercase tracking-wider">
                                   ✓ LIVE
                                 </span>
                               </div>
                               <p className="text-[11px] font-bold text-slate-700 mt-1 leading-tight group-hover/item:text-[#004aad] transition-colors line-clamp-1">
-                                {result.title}
+                                {t(result.title)}
                               </p>
                               <p className="text-[9px] text-slate-400 mt-0.5 font-mono">
-                                Status: {result.status}
+                                {t("Status")}: {t(result.status)}
                               </p>
                             </div>
                           ))}
@@ -2242,7 +2247,7 @@ export default function App() {
                         }}
                         className="mt-4 w-full bg-[#004aad]/10 hover:bg-[#004aad] text-[#004aad] hover:text-white font-bold text-xs py-2.5 rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                       >
-                        View Results <ArrowRight size={12} />
+                        {t("View Results")} <ArrowRight size={12} />
                       </button>
                     </div>
 
@@ -2252,7 +2257,7 @@ export default function App() {
                         <div className="flex items-center gap-2 px-4 py-3 mb-4 bg-[#004aad] border-2 border-blue-300 text-white rounded-lg shadow-md">
                           <Trophy size={20} className="text-white shrink-0" />
                           <h4 className="text-sm md:text-base font-extrabold uppercase tracking-wider text-white">
-                            Recommended Mock Tests
+                            {t("Recommended Mock Tests")}
                           </h4>
                         </div>
                         <div className="space-y-3">
@@ -2264,17 +2269,17 @@ export default function App() {
                             >
                               <div className="flex items-center justify-between gap-1">
                                 <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider bg-indigo-50 px-1.5 py-0.5 rounded font-mono">
-                                  {test.category}
+                                  {t(test.category)}
                                 </span>
                                 <span className="text-[9px] text-slate-400 font-mono font-bold">
-                                  {test.durationMinutes} Mins
+                                  {test.durationMinutes} {t("Mins")}
                                 </span>
                               </div>
                               <p className="text-[11px] font-bold text-slate-700 mt-1 leading-tight group-hover/item:text-[#004aad] transition-colors line-clamp-1">
-                                {test.title}
+                                {t(test.title)}
                               </p>
                               <p className="text-[9px] text-slate-400 mt-0.5 font-mono">
-                                Total Questions: {test.questions.length} Qs
+                                {t("Total Questions")}: {test.questions.length} {t("Qs")}
                               </p>
                             </div>
                           ))}
@@ -2287,7 +2292,7 @@ export default function App() {
                         }}
                         className="mt-4 w-full bg-[#004aad]/10 hover:bg-[#004aad] text-[#004aad] hover:text-white font-bold text-xs py-2.5 rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                       >
-                        Take Mock <ArrowRight size={12} />
+                        {t("Take Mock")} <ArrowRight size={12} />
                       </button>
                     </div>
 
@@ -2297,7 +2302,7 @@ export default function App() {
                         <div className="flex items-center gap-2 px-4 py-3 mb-4 bg-[#004aad] border-2 border-blue-300 text-white rounded-lg shadow-md">
                           <BookOpen size={20} className="text-white shrink-0" />
                           <h4 className="text-sm md:text-base font-extrabold uppercase tracking-wider text-white">
-                            PYQ PDF Vault
+                            {t("PYQ PDF Vault")}
                           </h4>
                         </div>
                         <div className="space-y-3">
@@ -2309,17 +2314,17 @@ export default function App() {
                             >
                               <div className="flex items-center justify-between gap-1">
                                 <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider bg-slate-100 px-1.5 py-0.5 rounded font-mono">
-                                  {pdf.category}
+                                  {t(pdf.category)}
                                 </span>
                                 <span className="text-[9px] text-slate-400 font-mono font-bold">
                                   {pdf.fileSize}
                                 </span>
                               </div>
                               <p className="text-[11px] font-bold text-slate-700 mt-1 leading-tight group-hover/item:text-[#004aad] transition-colors line-clamp-1">
-                                {pdf.title}
+                                {t(pdf.title)}
                               </p>
                               <p className="text-[9px] text-slate-400 mt-0.5 font-mono">
-                                Subject: {pdf.subject} | Year: {pdf.year}
+                                {t("Subject")}: {t(pdf.subject)} | {t("Year")}: {pdf.year}
                               </p>
                             </div>
                           ))}
@@ -2332,7 +2337,7 @@ export default function App() {
                         }}
                         className="mt-4 w-full bg-[#004aad]/10 hover:bg-[#004aad] text-[#004aad] hover:text-white font-bold text-xs py-2.5 rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                       >
-                        Get PDF Guides <ArrowRight size={12} />
+                        {t("Get PDF Guides")} <ArrowRight size={12} />
                       </button>
                     </div>
 
@@ -2489,13 +2494,13 @@ export default function App() {
                       <div className="flex flex-col text-left">
                         <div className="flex items-center gap-2.5 mb-1.5 flex-wrap">
                           <span className="bg-blue-50 text-[#004aad] font-bold text-[10px] md:text-xs px-2.5 py-0.5 rounded-full tracking-wider uppercase border border-blue-100">
-                            {pdf.category}
+                            {t(pdf.category)}
                           </span>
                           <span className="bg-[#004aad]/10 text-[#004aad] font-bold text-[10px] md:text-xs px-2.5 py-0.5 rounded-full uppercase">
-                            {pdf.subject}
+                            {t(pdf.subject)}
                           </span>
                           <span className="bg-emerald-50 text-emerald-600 font-bold text-[10px] md:text-xs px-2.5 py-0.5 rounded-full uppercase border border-emerald-100">
-                            Year {pdf.year}
+                            {t("Year")} {pdf.year}
                           </span>
                           <span className="font-mono text-xs text-slate-400 font-medium mr-1">
                             {pdf.fileSize}
@@ -2505,30 +2510,30 @@ export default function App() {
                           {isPremiumPdf ? (
                             accessible ? (
                               <span className="bg-emerald-50 text-emerald-600 font-extrabold text-[10px] md:text-xs px-2.5 py-0.5 rounded-full uppercase border border-emerald-200 flex items-center gap-1 animate-pulse">
-                                <Unlock size={10} className="fill-current text-emerald-500" /> Pass Unlocked
+                                <Unlock size={10} className="fill-current text-emerald-500" /> {t("Pass Unlocked")}
                               </span>
                             ) : (
                               <span className="bg-amber-50 text-amber-600 font-extrabold text-[10px] md:text-xs px-2.5 py-0.5 rounded-full uppercase border border-amber-200 flex items-center gap-1">
-                                <Lock size={10} className="text-amber-500" /> Pass Premium
+                                <Lock size={10} className="text-amber-500" /> {t("Pass Premium")}
                               </span>
                             )
                           ) : (
                             <span className="bg-slate-100 text-slate-600 font-extrabold text-[10px] md:text-xs px-2.5 py-0.5 rounded-full uppercase border border-slate-200 flex items-center gap-1">
-                              Free Sample
+                              {t("Free Sample")}
                             </span>
                           )}
                         </div>
                         <h3 className="text-base md:text-lg font-bold text-slate-900 group-hover:text-[#004aad] transition-colors leading-snug">
-                          {pdf.title}
+                          {t(pdf.title)}
                         </h3>
                         <p className="text-xs text-slate-500 mt-1 flex items-center gap-1.5">
                           <FileText size={14} className="text-[#004aad]" />
-                          Includes {pdf.questionsCount} authentic previous year questions
+                          {t("Includes")} {pdf.questionsCount} {t("authentic previous year questions")}
                         </p>
                       </div>
                       <div className="self-end md:self-auto flex items-center gap-2">
                         <button className="bg-[#004aad]/10 text-[#004aad] group-hover:bg-[#004aad] group-hover:text-white px-5 py-2 rounded-lg font-bold text-xs md:text-sm tracking-wide transition-all flex items-center gap-2">
-                          {accessible ? "Read Document" : "Unlock Document"} <BookOpen size={14} />
+                          {accessible ? t("Read Document") : t("Unlock Document")} <BookOpen size={14} />
                         </button>
                       </div>
                     </div>
@@ -2579,39 +2584,39 @@ export default function App() {
                       <div className="flex flex-col text-left">
                         <div className="flex items-center gap-2.5 mb-1.5 flex-wrap">
                           <span className="bg-blue-50 text-[#004aad] font-bold text-[10px] md:text-xs px-2.5 py-0.5 rounded-full tracking-wider uppercase border border-blue-100">
-                            {test.category}
+                            {t(test.category)}
                           </span>
                           <span className="bg-slate-100 text-slate-700 font-bold text-[10px] md:text-xs px-2.5 py-0.5 rounded-full flex items-center gap-1">
-                            <Clock size={12} /> {test.durationMinutes} Mins
+                            <Clock size={12} /> {test.durationMinutes} {t("Mins")}
                           </span>
 
                           {/* Access Badges */}
                           {isPremiumTest ? (
                             accessible ? (
                               <span className="bg-emerald-50 text-emerald-600 font-extrabold text-[10px] md:text-xs px-2.5 py-0.5 rounded-full uppercase border border-emerald-200 flex items-center gap-1 animate-pulse">
-                                <Unlock size={10} className="fill-current text-emerald-500" /> Pass Unlocked
+                                <Unlock size={10} className="fill-current text-emerald-500" /> {t("Pass Unlocked")}
                               </span>
                             ) : (
                               <span className="bg-amber-50 text-amber-600 font-extrabold text-[10px] md:text-xs px-2.5 py-0.5 rounded-full uppercase border border-amber-200 flex items-center gap-1">
-                                <Lock size={10} className="text-amber-500" /> Pass Premium
+                                <Lock size={10} className="text-amber-500" /> {t("Pass Premium")}
                               </span>
                             )
                           ) : (
                             <span className="bg-slate-100 text-slate-600 font-extrabold text-[10px] md:text-xs px-2.5 py-0.5 rounded-full uppercase border border-slate-200 flex items-center gap-1">
-                              Free Simulator
+                              {t("Free Simulator")}
                             </span>
                           )}
                         </div>
                         <h3 className="text-base md:text-lg font-bold text-slate-900 group-hover:text-[#004aad] transition-colors leading-snug">
-                          {test.title}
+                          {t(test.title)}
                         </h3>
                         <p className="text-xs text-slate-500 mt-1 flex items-center gap-1.5">
                           <Trophy size={14} className="text-[#004aad]" />
-                          Contains {test.questions.length} real pattern multiple-choice questions
+                          {t("Contains")} {test.questions.length} {t("real pattern multiple-choice questions")}
                         </p>
                       </div>
                       <button className="self-end md:self-auto bg-[#004aad] text-white hover:bg-[#004aad]/90 px-6 py-2.5 rounded-lg font-bold text-xs md:text-sm tracking-wide transition-all flex items-center gap-1.5 shadow-sm">
-                        {accessible ? "Start Free Mock" : "Unlock Mock Test"} <PlayIcon />
+                        {accessible ? t("Start Free Mock") : t("Unlock Mock Test")} <PlayIcon />
                       </button>
                     </div>
                   );
@@ -4556,95 +4561,34 @@ export default function App() {
                       </button>
                     </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                      {/* Left: Document details and preview */}
-                      <div className="lg:col-span-2 space-y-6">
-                        {/* Key Highlight Card */}
-                        <div className="border border-slate-200 rounded-2xl p-5 md:p-6 bg-slate-50/20">
-                          <h4 className="text-xs font-black uppercase text-blue-900 tracking-wider mb-3 flex items-center gap-1 border-b pb-2">
-                            🌟 Official Solution Key Highlights
-                          </h4>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs text-slate-700">
-                            <div className="bg-white p-3 rounded-xl border border-slate-100 flex gap-2 items-start">
-                              <span className="text-emerald-500 text-sm">✓</span>
-                              <div>
-                                <strong className="block text-slate-800">Double Verified Keys</strong>
-                                Master answers authenticated by veteran Maharashtra civil services professors.
-                              </div>
-                            </div>
-                            <div className="bg-white p-3 rounded-xl border border-slate-100 flex gap-2 items-start">
-                              <span className="text-emerald-500 text-sm">✓</span>
-                              <div>
-                                <strong className="block text-slate-800">Detailed Explanations</strong>
-                                Step-by-step mathematical reasoning and constitutional background details.
-                              </div>
-                            </div>
-                            <div className="bg-white p-3 rounded-xl border border-slate-100 flex gap-2 items-start">
-                              <span className="text-emerald-500 text-sm">✓</span>
-                              <div>
-                                <strong className="block text-slate-800">Bilingual Support</strong>
-                                Fully translated in native Marathi (मराठी) and academic English formats.
-                              </div>
-                            </div>
-                            <div className="bg-white p-3 rounded-xl border border-slate-100 flex gap-2 items-start">
-                              <span className="text-emerald-500 text-sm">✓</span>
-                              <div>
-                                <strong className="block text-slate-800">Fully Printable</strong>
-                                Clean, optimized single-column layout tailored for physical document prints.
-                              </div>
-                            </div>
+                    <div className="max-w-xl mx-auto w-full">
+                      {/* Actions */}
+                      <div className="border border-slate-200 rounded-2xl p-5 md:p-6 bg-slate-50/20 shadow-3xs text-center space-y-4">
+                        <h4 className="text-xs font-black uppercase text-slate-900 tracking-wider border-b pb-2">
+                          📥 {t("File Properties")}
+                        </h4>
+                        <div className="space-y-2 text-xs">
+                          <div className="flex justify-between items-center py-1.5 border-b border-slate-100">
+                            <span className="text-slate-400">{t("File Format")}</span>
+                            <span className="font-bold text-slate-800">PDF (.pdf)</span>
+                          </div>
+                          <div className="flex justify-between items-center py-1.5 border-b border-slate-100">
+                            <span className="text-slate-400">{t("Download Size")}</span>
+                            <span className="font-bold text-[#004aad] font-mono">{selectedPdf.fileSize}</span>
+                          </div>
+                          <div className="flex justify-between items-center py-1.5 border-b border-slate-100">
+                            <span className="text-slate-400">{t("Document Year")}</span>
+                            <span className="font-bold text-slate-800 font-mono">{selectedPdf.year}</span>
                           </div>
                         </div>
-
-                        {/* Embedded Mock PDF Document Preview */}
-                        <div className="border border-slate-200 rounded-2xl p-5 md:p-6">
-                          <h4 className="text-xs font-black uppercase text-blue-900 tracking-wider mb-3 flex items-center gap-1 border-b pb-2">
-                            👁️ Solution Booklet Live Preview
-                          </h4>
-                          <div className="bg-slate-900 text-slate-200 font-mono text-[11px] p-4 rounded-xl max-h-[300px] overflow-y-auto leading-relaxed border border-slate-800 select-none">
-                            <span className="block text-slate-500 uppercase tracking-widest text-[9px] mb-2 border-b border-slate-800 pb-1">Page 1 of Solutions (Academic Sandbox Demo)</span>
-                            {selectedPdf.pages && selectedPdf.pages.length > 0 ? (
-                              selectedPdf.pages.map((pageText: string, index: number) => (
-                                <div key={index} className="space-y-2 mb-4">
-                                  <pre className="whitespace-pre-wrap font-mono text-[11px] font-medium">{pageText}</pre>
-                                </div>
-                              ))
-                            ) : (
-                              <p className="italic text-slate-500">Preview page is compiling...</p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Right: Actions */}
-                      <div className="space-y-6">
-                        <div className="border border-slate-200 rounded-2xl p-5 md:p-6 bg-slate-50/20 shadow-3xs text-center space-y-4">
-                          <h4 className="text-xs font-black uppercase text-slate-900 tracking-wider border-b pb-2">
-                            📥 File Properties
-                          </h4>
-                          <div className="space-y-2 text-xs">
-                            <div className="flex justify-between items-center py-1.5 border-b border-slate-100">
-                              <span className="text-slate-400">File Format</span>
-                              <span className="font-bold text-slate-800">PDF (.pdf)</span>
-                            </div>
-                            <div className="flex justify-between items-center py-1.5 border-b border-slate-100">
-                              <span className="text-slate-400">Download Size</span>
-                              <span className="font-bold text-[#004aad] font-mono">{selectedPdf.fileSize}</span>
-                            </div>
-                            <div className="flex justify-between items-center py-1.5 border-b border-slate-100">
-                              <span className="text-slate-400">Document Year</span>
-                              <span className="font-bold text-slate-800 font-mono">{selectedPdf.year}</span>
-                            </div>
-                          </div>
-                          <button
-                            onClick={() => {
-                              alert(`Simulating secure download for ${selectedPdf.title}.pdf (${selectedPdf.fileSize}). Successful!`);
-                            }}
-                            className="w-full bg-[#004aad] hover:bg-[#003c8f] text-white font-extrabold text-xs py-3 rounded-lg transition-all shadow-3xs uppercase tracking-wider cursor-pointer"
-                          >
-                            📥 Download Solution Booklet
-                          </button>
-                        </div>
+                        <button
+                          onClick={() => {
+                            alert(t("Simulating secure download for") + ` ${selectedPdf.title}.pdf (${selectedPdf.fileSize}). ` + t("Successful!"));
+                          }}
+                          className="w-full bg-[#004aad] hover:bg-[#003c8f] text-white font-extrabold text-xs py-3 rounded-lg transition-all shadow-3xs uppercase tracking-wider cursor-pointer"
+                        >
+                          📥 {t("Download Solution Booklet")}
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -4755,9 +4699,9 @@ export default function App() {
             }`}>
               <div>
                 <span className="text-[10px] font-bold uppercase tracking-wider bg-white/20 px-2 py-0.5 rounded-full">
-                  {activeJobModal.category} Job Alert
+                  {t(activeJobModal.category)} {t("Job Alert")}
                 </span>
-                <h3 className="text-lg font-extrabold mt-1">{activeJobModal.title}</h3>
+                <h3 className="text-lg font-extrabold mt-1">{t(activeJobModal.title)}</h3>
               </div>
               <button 
                 onClick={() => setActiveJobModal(null)} 
@@ -4772,50 +4716,50 @@ export default function App() {
               {/* Quick Specs Grid */}
               <div className="grid grid-cols-2 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-100">
                 <div>
-                  <h4 className="font-bold text-[10px] text-slate-400 uppercase tracking-wider">Recruiter</h4>
-                  <p className="font-semibold text-slate-800 text-xs sm:text-sm mt-0.5">{activeJobModal.organization}</p>
+                  <h4 className="font-bold text-[10px] text-slate-400 uppercase tracking-wider">{t("Recruiter")}</h4>
+                  <p className="font-semibold text-slate-800 text-xs sm:text-sm mt-0.5">{t(activeJobModal.organization)}</p>
                 </div>
                 <div>
-                  <h4 className="font-bold text-[10px] text-slate-400 uppercase tracking-wider">Post Name</h4>
-                  <p className="font-semibold text-slate-800 text-xs sm:text-sm mt-0.5">{activeJobModal.postName}</p>
+                  <h4 className="font-bold text-[10px] text-slate-400 uppercase tracking-wider">{t("Post Name")}</h4>
+                  <p className="font-semibold text-slate-800 text-xs sm:text-sm mt-0.5">{t(activeJobModal.postName)}</p>
                 </div>
                 <div>
-                  <h4 className="font-bold text-[10px] text-slate-400 uppercase tracking-wider">Total Vacancies</h4>
-                  <p className="font-semibold text-slate-800 text-xs sm:text-sm mt-0.5">{activeJobModal.vacancies}</p>
+                  <h4 className="font-bold text-[10px] text-slate-400 uppercase tracking-wider">{t("Total Vacancies")}</h4>
+                  <p className="font-semibold text-slate-800 text-xs sm:text-sm mt-0.5">{t(activeJobModal.vacancies)}</p>
                 </div>
                 <div>
-                  <h4 className="font-bold text-[10px] text-slate-400 uppercase tracking-wider">Scale of Pay</h4>
+                  <h4 className="font-bold text-[10px] text-slate-400 uppercase tracking-wider">{t("Scale of Pay")}</h4>
                   <p className="font-semibold text-slate-800 text-xs sm:text-sm mt-0.5 flex items-center gap-1">
                     <DollarSign size={12} className="text-slate-400" />
-                    {activeJobModal.salary}
+                    {t(activeJobModal.salary)}
                   </p>
                 </div>
                 <div>
-                  <h4 className="font-bold text-[10px] text-slate-400 uppercase tracking-wider">Required Qualification</h4>
-                  <p className="font-semibold text-slate-800 text-xs sm:text-sm mt-0.5">{activeJobModal.qualification}</p>
+                  <h4 className="font-bold text-[10px] text-slate-400 uppercase tracking-wider">{t("Required Qualification")}</h4>
+                  <p className="font-semibold text-slate-800 text-xs sm:text-sm mt-0.5">{t(activeJobModal.qualification)}</p>
                 </div>
                 <div>
-                  <h4 className="font-bold text-[10px] text-slate-400 uppercase tracking-wider">Last Date to Apply</h4>
+                  <h4 className="font-bold text-[10px] text-slate-400 uppercase tracking-wider">{t("Last Date to Apply")}</h4>
                   <p className="font-bold text-red-600 text-xs sm:text-sm mt-0.5 flex items-center gap-1">
                     <Clock size={12} />
-                    {activeJobModal.lastDate}
+                    {t(activeJobModal.lastDate)}
                   </p>
                 </div>
               </div>
 
               <div>
-                <h4 className="font-bold text-xs text-[#004aad] uppercase tracking-wider mb-1.5">Job Overview</h4>
+                <h4 className="font-bold text-xs text-[#004aad] uppercase tracking-wider mb-1.5">{t("Job Overview")}</h4>
                 <p className="text-slate-700 leading-relaxed bg-blue-50/40 p-3 rounded-lg border border-blue-100">
-                  {activeJobModal.details}
+                  {t(activeJobModal.details)}
                 </p>
               </div>
 
               <div>
-                <h4 className="font-bold text-xs text-[#004aad] uppercase tracking-wider mb-1.5">Eligibility & Requirements</h4>
+                <h4 className="font-bold text-xs text-[#004aad] uppercase tracking-wider mb-1.5">{t("Eligibility & Requirements")}</h4>
                 <div className="text-slate-700 space-y-1 bg-slate-50 p-3 rounded-lg border border-slate-100">
-                  <p>• <strong>Age Limit:</strong> 18 - 38 years (relaxation applicable for category students).</p>
-                  <p>• <strong>Education:</strong> Must possess relevant degrees corresponding to {activeJobModal.qualification}.</p>
-                  <p>• <strong>Experience:</strong> Freshers are eligible unless mentioned in the notification briefing.</p>
+                  <p>• <strong>{t("Age Limit")}:</strong> 18 - 38 {t("years")} ({t("relaxation applicable for category students")}).</p>
+                  <p>• <strong>{t("Education")}:</strong> {t("Must possess relevant degrees corresponding to")} {t(activeJobModal.qualification)}.</p>
+                  <p>• <strong>{t("Experience")}:</strong> {t("Freshers are eligible unless mentioned in the notification briefing")}.</p>
                 </div>
               </div>
 
@@ -4827,7 +4771,7 @@ export default function App() {
                   className="flex-grow text-center border-2 border-[#004aad] text-[#004aad] hover:bg-blue-50 font-bold py-2.5 rounded-lg transition-all text-xs md:text-sm flex items-center justify-center gap-1.5 cursor-pointer"
                   id="job-link-official-site"
                 >
-                  Apply Online <ExternalLink size={14} />
+                  {t("Apply Online")} <ExternalLink size={14} />
                 </a>
                 <button
                   onClick={() => {
@@ -4846,7 +4790,7 @@ export default function App() {
                   className="flex-grow text-center bg-[#004aad] hover:bg-[#004aad]/90 text-white font-bold py-2.5 rounded-lg transition-all text-xs md:text-sm flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
                   id="job-btn-prep-mock"
                 >
-                  Attempt Prep Mock <ArrowRight size={14} />
+                  {t("Attempt Prep Mock")} <ArrowRight size={14} />
                 </button>
               </div>
             </div>
