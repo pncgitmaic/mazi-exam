@@ -2954,7 +2954,7 @@ export default function App() {
                     </div>
                   </div>
                   <a
-                    href="https://linkedin.com/prathamesh-chaware/"
+                    href="https://www.linkedin.com/in/prathamesh-chaware/"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 bg-[#0077b5] hover:bg-[#0077b5]/90 text-white font-bold text-xs px-5 py-2.5 rounded-xl transition-all shadow-sm uppercase tracking-wider cursor-pointer whitespace-nowrap"
