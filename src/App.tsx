@@ -2508,6 +2508,55 @@ export default function App() {
                       MaziExam Portal is Maharashtra's premier career guidance and competitive examination learning ecosystem. We curate, verify, and deliver real-time news alerts on state notifications, sarkari recruitments, central syllabus timelines, and private placement opportunities. Our unified portal keeps competitive aspirants equipped with direct links, syllabus updates, and eligibility checklists to accelerate their preparation.
                     </p>
 
+                    {/* Live Online Exam Mock Test format highlight with Image in full frame */}
+                    <div className="mb-8 p-6 bg-gradient-to-br from-indigo-50/50 via-slate-50 to-[#004aad]/5 rounded-2xl border border-[#004aad]/20 shadow-3xs text-left">
+                      <div className="mb-6">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-200 font-mono mb-3">
+                          🖥️ Real-Exam Environment
+                        </span>
+                        <h3 className="text-xl md:text-2xl font-extrabold text-slate-900 leading-snug mb-2">
+                          {t("Exact Live Online Exam Format Simulator")}
+                        </h3>
+                        <p className="text-slate-600 text-xs md:text-sm leading-relaxed max-w-4xl mb-4">
+                          {t("Our mock tests are meticulously engineered to replicate the exact live online examination pattern of MPSC, UPSC, Police Bharti, and IBPS. Experience the real exam environment with interactive multi-question navigation panels, precise timers, mark-for-review bookmarks, instant dynamic result analytics, and complete bilingual explanations!")}
+                        </p>
+                        <div className="flex flex-wrap gap-2 text-xs font-bold text-[#004aad]">
+                          <span className="px-2.5 py-1 bg-white rounded-lg shadow-3xs border border-[#004aad]/10">✓ {t("Real Screen Layout")}</span>
+                          <span className="px-2.5 py-1 bg-white rounded-lg shadow-3xs border border-[#004aad]/10">✓ {t("Sectional Time Tracking")}</span>
+                          <span className="px-2.5 py-1 bg-white rounded-lg shadow-3xs border border-[#004aad]/10">✓ {t("Detailed Answer Explanations")}</span>
+                        </div>
+                      </div>
+
+                      {/* Full-Frame Browser Mockup to present the image big and clear */}
+                      <div className="w-full bg-slate-900 rounded-xl border border-slate-700 shadow-md overflow-hidden relative group">
+                        {/* Browser window mock header */}
+                        <div className="bg-slate-800 px-4 py-2 flex items-center justify-between border-b border-slate-700 select-none">
+                          <div className="flex gap-1.5">
+                            <span className="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block"></span>
+                            <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block"></span>
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span>
+                          </div>
+                          <div className="flex-1 max-w-xs sm:max-w-md mx-auto bg-slate-900/60 rounded text-[9px] font-mono text-slate-400 py-0.5 px-3 text-center truncate border border-slate-700/50">
+                            https://maziexam.com/mock-test-simulator-live
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="bg-[#004aad]/80 backdrop-blur-xs text-[8px] font-bold text-white px-2 py-0.5 rounded uppercase tracking-wider">
+                              {t("Live Exam View")}
+                            </span>
+                          </div>
+                        </div>
+                        {/* Large, uncropped simulator screenshot container */}
+                        <div className="bg-slate-950 p-1 sm:p-2 flex justify-center items-center">
+                          <img 
+                            src="https://isxhcatn0reqvwnv.public.blob.vercel-storage.com/image.jpg" 
+                            alt="Live Exam Simulator Interface" 
+                            referrerPolicy="no-referrer"
+                            className="w-full h-auto object-contain rounded-lg border border-slate-800 transition-transform duration-300 hover:scale-[1.005]"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 border-t border-slate-200 pt-6">
                       {/* Sub-section A */}
                       <div>

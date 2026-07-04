@@ -427,7 +427,13 @@ export const additionalTranslations: Record<"en" | "hi" | "mr", Record<string, s
     "3 Attempts (Free Limit)": "3 प्रयास (मुफ़्त सीमा)",
     "You have used all 3 free attempts for this test. Please unlock the Portal Pass to get unlimited attempts!": "आपने इस परीक्षा के लिए सभी 3 मुफ़्त प्रयासों का उपयोग कर लिया है। असीमित प्रयास प्राप्त करने के लिए कृपया पोर्टल पास अनलॉक करें!",
     "Unlock Unlimited Attempts": "असीमित प्रयास अनलॉक करें",
-    "Maximum 3 free attempts reached for this mock test. Please upgrade to the Selection Pass to get unlimited attempts!": "इस मॉक टेस्ट के लिए अधिकतम 3 मुफ्त प्रयास पूरे हो चुके हैं। असीमित प्रयास प्राप्त करने के लिए कृपया सिलेक्शन पास में अपग्रेड करें!"
+    "Maximum 3 free attempts reached for this mock test. Please upgrade to the Selection Pass to get unlimited attempts!": "इस मॉक टेस्ट के लिए अधिकतम 3 मुफ्त प्रयास पूरे हो चुके हैं। असीमित प्रयास प्राप्त करने के लिए कृपया सिलेक्शन पास में अपग्रेड करें!",
+    "Exact Live Online Exam Format Simulator": "बिल्कुल वास्तविक लाइव ऑनलाइन परीक्षा प्रारूप सिम्युलेटर",
+    "Our mock tests are meticulously engineered to replicate the exact live online examination pattern of MPSC, UPSC, Police Bharti, and IBPS. Experience the real exam environment with interactive multi-question navigation panels, precise timers, mark-for-review bookmarks, instant dynamic result analytics, and complete bilingual explanations!": "हमारे मॉक टेस्ट विशेष रूप से MPSC, UPSC, पुलिस भर्ती और IBPS के बिल्कुल वास्तविक लाइव ऑनलाइन परीक्षा पैटर्न को दोहराने के लिए तैयार किए गए हैं। इंटरएक्टिव बहु-प्रश्न नेविगेशन पैनल, सटीक टाइमर, मार्क-फॉर-रिव्यू बुकमार्क, तत्काल स्कोर विश्लेषण और संपूर्ण द्विभाषी स्पष्टीकरण के साथ वास्तविक परीक्षा वातावरण का अनुभव करें!",
+    "Real Screen Layout": "वास्तविक स्क्रीन लेआउट",
+    "Sectional Time Tracking": "अनुभागीय समय ट्रैकिंग",
+    "Detailed Answer Explanations": "विस्तृत उत्तर स्पष्टीकरण",
+    "Live Exam View": "लाइव परीक्षा दृश्य"
   },
   mr: {
     // Upcoming Exams
@@ -856,6 +862,12 @@ export const additionalTranslations: Record<"en" | "hi" | "mr", Record<string, s
     "3 Attempts (Free Limit)": "3 प्रयत्न (मोफत मर्यादा)",
     "You have used all 3 free attempts for this test. Please unlock the Portal Pass to get unlimited attempts!": "तुम्ही या परीक्षेसाठी सर्व 3 मोफत प्रयत्न वापरले आहेत. अमर्यादित प्रयत्न मिळवण्यासाठी कृपया पोर्टल पास अनलॉक करा!",
     "Unlock Unlimited Attempts": "अमर्यादित प्रयत्न अनलॉक करा",
-    "Maximum 3 free attempts reached for this mock test. Please upgrade to the Selection Pass to get unlimited attempts!": "या मॉक टेस्टसाठी जास्तीत जास्त ३ मोफत प्रयत्न पूर्ण झाले आहेत. अमर्यादित प्रयत्न मिळवण्यासाठी कृपया सिलेक्शन पासवर अपग्रेड करा!"
+    "Maximum 3 free attempts reached for this mock test. Please upgrade to the Selection Pass to get unlimited attempts!": "या मॉक टेस्टसाठी जास्तीत जास्त ३ मोफत प्रयत्न पूर्ण झाले आहेत. अमर्यादित प्रयत्न मिळवण्यासाठी कृपया सिलेक्शन पासवर अपग्रेड करा!",
+    "Exact Live Online Exam Format Simulator": "तंतोतंत वास्तविक लाईव्ह ऑनलाईन परीक्षा स्वरूप सिम्युलेटर",
+    "Our mock tests are meticulously engineered to replicate the exact live online examination pattern of MPSC, UPSC, Police Bharti, and IBPS. Experience the real exam environment with interactive multi-question navigation panels, precise timers, mark-for-review bookmarks, instant dynamic result analytics, and complete bilingual explanations!": "आमचे मॉक टेस्ट्स MPSC, UPSC, पोलीस भरती आणि IBPS च्या तंतोतंत वास्तविक लाईव्ह ऑनलाईन परीक्षा पॅटर्नची अनुभूती देण्यासाठी तयार केले आहेत. परस्परसंवादी बहु-प्रश्न नेव्हिगेशन पॅनेल, अचूक टाइमर, मार्क-फॉर-रिव्ह्यू बुकमार्क, झटपट निकाल विश्लेषण आणि संपूर्ण स्पष्टीकरणासह वास्तविक परीक्षेच्या वातावरणाचा अनुभव घ्या!",
+    "Real Screen Layout": "वास्तविक स्क्रीन लेआउट",
+    "Sectional Time Tracking": "विभागीय वेळ ट्रॅकिंग",
+    "Detailed Answer Explanations": "तपशीलवार उत्तर स्पष्टीकरण",
+    "Live Exam View": "लाईव्ह परीक्षा देखावा"
   }
 };
