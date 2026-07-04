@@ -31,4 +31,5 @@ Allow: /#/sitemap
 User-agent: OAI-SearchBot
 Allow: /
 
+Sitemap: https://maziexam.com/sitemap.xml
 Sitemap: https://maziexam.com/#/sitemap

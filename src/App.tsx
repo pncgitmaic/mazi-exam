@@ -32,7 +32,8 @@ import {
   ShieldAlert,
   Bell,
   BellOff,
-  Linkedin
+  Linkedin,
+  Bookmark
 } from "lucide-react";
 import { 
   upcomingExams, 
@@ -651,6 +652,68 @@ function AppLogo({ className, id, isFooter = false }: { className?: string; id?:
   );
 }
 
+const getTestSubjectsAndQuestions = (testId: string, questionsLength: number) => {
+  if (testId === "test-1") {
+    return [
+      { name: "General Studies", startIdx: 0, endIdx: 1 },
+      { name: "Maharashtra Geography", startIdx: 2, endIdx: 3 },
+      { name: "Indian Constitution", startIdx: 4, endIdx: questionsLength - 1 },
+    ];
+  }
+  if (testId === "test-2" || testId === "test-8" || testId === "test-9") {
+    return [
+      { name: "Quantitative Aptitude", startIdx: 0, endIdx: 1 },
+      { name: "Logical Reasoning", startIdx: 2, endIdx: 3 },
+      { name: "Reading Comprehension", startIdx: 4, endIdx: questionsLength - 1 },
+    ];
+  }
+  if (testId === "test-3") {
+    return [
+      { name: "Arithmetic", startIdx: 0, endIdx: 1 },
+      { name: "Algebra & Geometry", startIdx: 2, endIdx: 3 },
+      { name: "Data Interpretation", startIdx: 4, endIdx: questionsLength - 1 },
+    ];
+  }
+  if (testId === "test-4") {
+    return [
+      { name: "Analytical Reasoning", startIdx: 0, endIdx: 1 },
+      { name: "Syllogisms", startIdx: 2, endIdx: 3 },
+      { name: "Coding-Decoding", startIdx: 4, endIdx: questionsLength - 1 },
+    ];
+  }
+  if (testId === "test-5" || testId === "test-7" || testId === "test-10") {
+    return [
+      { name: "General Knowledge", startIdx: 0, endIdx: 1 },
+      { name: "Current Affairs", startIdx: 2, endIdx: 3 },
+      { name: "General Science", startIdx: 4, endIdx: questionsLength - 1 },
+    ];
+  }
+  if (testId === "test-6") {
+    return [
+      { name: "Marathi Grammar", startIdx: 0, endIdx: 1 },
+      { name: "General Knowledge", startIdx: 2, endIdx: 3 },
+      { name: "Basic Maths", startIdx: 4, endIdx: questionsLength - 1 },
+    ];
+  }
+  if (testId === "test-medical-1") {
+    return [
+      { name: "Botany", startIdx: 0, endIdx: 2 },
+      { name: "Zoology", startIdx: 3, endIdx: questionsLength - 1 },
+    ];
+  }
+  if (testId === "test-engineering-1") {
+    return [
+      { name: "Mechanics", startIdx: 0, endIdx: 2 },
+      { name: "Electromagnetism", startIdx: 3, endIdx: questionsLength - 1 },
+    ];
+  }
+  const midPoint = Math.floor(questionsLength / 2);
+  return [
+    { name: "Section A", startIdx: 0, endIdx: Math.max(0, midPoint - 1) },
+    { name: "Section B", startIdx: Math.min(questionsLength - 1, midPoint), endIdx: questionsLength - 1 },
+  ];
+};
+
 export default function App() {
   // Language state & localization helpers
   const [currentLang, setCurrentLang] = useState<"en" | "hi" | "mr">(() => {
@@ -1198,6 +1261,28 @@ export default function App() {
     // If index is less than 2, it's free
     return index < 2;
   };
+
+  const getAttemptsCount = (testId: string) => {
+    const cloudCount = solvedAttempts.filter(attempt => attempt.testId === testId).length;
+    let localCount = 0;
+    try {
+      const localAttempts = JSON.parse(localStorage.getItem(`local_attempts_${testId}`) || "[]");
+      localCount = localAttempts.length;
+    } catch (e) {
+      console.error("Error reading localStorage", e);
+    }
+    return Math.max(cloudCount, localCount);
+  };
+
+  const recordLocalAttempt = (testId: string) => {
+    try {
+      const localAttempts = JSON.parse(localStorage.getItem(`local_attempts_${testId}`) || "[]");
+      localAttempts.push(Date.now());
+      localStorage.setItem(`local_attempts_${testId}`, JSON.stringify(localAttempts));
+    } catch (e) {
+      console.error("Error writing to localStorage", e);
+    }
+  };
   
   // Search state
   const [searchQuery, setSearchQuery] = useState("");
@@ -1242,6 +1327,8 @@ export default function App() {
   const [testTimer, setTestTimer] = useState(600); // 10 minutes in seconds
   const [testScore, setTestScore] = useState(0);
   const [testSubmitted, setTestSubmitted] = useState(false);
+  const [testMarkedForReview, setTestMarkedForReview] = useState<Record<number, boolean>>({});
+  const [testMarkedForLater, setTestMarkedForLater] = useState<Record<number, boolean>>({});
 
   // Start / Reset test timer
   useEffect(() => {
@@ -1256,6 +1343,32 @@ export default function App() {
     return () => clearInterval(timerInterval);
   }, [activeTestModal, testTimer, testSubmitted]);
 
+  // Track the last subject name to set default language per subject
+  const [lastSubjectName, setLastSubjectName] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (activeTestModal) {
+      const subjects = getTestSubjectsAndQuestions(activeTestModal.id, activeTestModal.questions.length);
+      const activeSubject = subjects.find(
+        (sub) => testCurrentQuestion >= sub.startIdx && testCurrentQuestion <= sub.endIdx
+      ) || subjects[0];
+
+      if (activeSubject && activeSubject.name !== lastSubjectName) {
+        setLastSubjectName(activeSubject.name);
+        const nameLower = activeSubject.name.toLowerCase();
+        if (nameLower.includes("marathi") || nameLower.includes("मराठी")) {
+          setCurrentLang("mr");
+        } else if (nameLower.includes("hindi") || nameLower.includes("हिंदी") || nameLower.includes("हिन्दी")) {
+          setCurrentLang("hi");
+        } else if (nameLower.includes("english") || nameLower.includes("अंग्रेजी") || nameLower.includes("इंग्रजी")) {
+          setCurrentLang("en");
+        }
+      }
+    } else {
+      setLastSubjectName(null);
+    }
+  }, [activeTestModal?.id, testCurrentQuestion, lastSubjectName]);
+
   // Format time (MM:SS)
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -1263,7 +1376,39 @@ export default function App() {
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
+  // Format time in hr : min : sec
+  const formatTimeHrMinSec = (seconds: number) => {
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    return `${hrs.toString().padStart(2, "0")} : ${mins.toString().padStart(2, "0")} : ${secs.toString().padStart(2, "0")}`;
+  };
+
   const handleStartTest = (test: MockTest) => {
+    // Check if the test is free (index < 2) and has reached the limit of 3 attempts
+    const categoryTests = mockTests.filter(t => t.category === test.category);
+    const testIndexInCategory = categoryTests.findIndex(t => t.id === test.id);
+    const isPremiumTest = testIndexInCategory >= 2;
+    const hasPass = hasPortalPass || unlockedPacks.includes("all_selection_pass") || unlockedPacks.includes("selection_pass");
+
+    if (!isPremiumTest && !hasPass) {
+      const attemptsCount = getAttemptsCount(test.id);
+      if (attemptsCount >= 3) {
+        alert(t("Maximum 3 free attempts reached for this mock test. Please upgrade to the Selection Pass to get unlimited attempts!"));
+        if (!currentUser) {
+          setAuthModalOpen(true);
+        } else {
+          setPaymentType("portal_pass");
+          setPaymentTargetPack(null);
+          setPaymentAmount(50);
+          setPaymentSuccess(false);
+          setPaymentPending(false);
+          setPaymentModalOpen(true);
+        }
+        return;
+      }
+    }
+
     setActiveTestModal(test);
     setTestCurrentQuestion(0);
     setTestAnswers({});
@@ -1271,6 +1416,8 @@ export default function App() {
     setTestTimer(test.durationMinutes * 60);
     setTestSubmitted(false);
     setTestScore(0);
+    setTestMarkedForReview({});
+    setTestMarkedForLater({});
   };
 
   const handleSelectOption = (questionId: number, optionIndex: number) => {
@@ -1283,6 +1430,9 @@ export default function App() {
 
   const handleSubmitTest = async () => {
     if (!activeTestModal) return;
+    
+    // Record this attempt locally
+    recordLocalAttempt(activeTestModal.id);
     
     let score = 0;
     activeTestModal.questions.forEach((q) => {
@@ -2346,38 +2496,38 @@ export default function App() {
                 </div>
 
                 {/* Full-width Grounding About & Collaboration Section */}
-                <section className="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 border border-indigo-500/20 rounded-2xl p-6 md:p-10 text-white mt-4 shadow-xl text-left" id="jobs-grounding-about-section">
+                <section className="bg-white border-2 border-[#004aad] rounded-2xl p-6 md:p-10 text-slate-800 mt-4 shadow-md text-left" id="jobs-grounding-about-section">
                   <div className="max-w-5xl">
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 font-mono mb-4">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-[#004aad]/10 text-[#004aad] border border-[#004aad]/20 font-mono mb-4">
                       🌐 Official Portal Overview & Grounding
                     </span>
-                    <h2 className="text-xl md:text-3xl font-extrabold text-white tracking-tight leading-tight mb-4">
+                    <h2 className="text-xl md:text-3xl font-extrabold text-[#004aad] tracking-tight leading-tight mb-4">
                       MaziExam: Your Ultimate Gateway to Selection in Government & Private Sectors
                     </h2>
-                    <p className="text-slate-300 text-xs md:text-sm leading-relaxed mb-6">
+                    <p className="text-slate-600 text-xs md:text-sm leading-relaxed mb-6 font-medium">
                       MaziExam Portal is Maharashtra's premier career guidance and competitive examination learning ecosystem. We curate, verify, and deliver real-time news alerts on state notifications, sarkari recruitments, central syllabus timelines, and private placement opportunities. Our unified portal keeps competitive aspirants equipped with direct links, syllabus updates, and eligibility checklists to accelerate their preparation.
                     </p>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 border-t border-indigo-500/10 pt-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 border-t border-slate-200 pt-6">
                       {/* Sub-section A */}
                       <div>
-                        <h3 className="text-base font-bold text-amber-400 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+                        <h3 className="text-base font-bold text-amber-600 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
                           ⭐ How We Secure Your Selection
                         </h3>
-                        <p className="text-slate-300 text-xs leading-relaxed">
+                        <p className="text-slate-600 text-xs leading-relaxed font-medium">
                           We believe that regular test practice combined with active awareness is key to competitive success. MaziExam delivers the perfect dual advantage:
                         </p>
-                        <ul className="mt-3 space-y-2 text-xs text-slate-300">
+                        <ul className="mt-3 space-y-2 text-xs text-slate-600">
                           <li className="flex items-start gap-2">
-                            <span className="text-amber-400 font-bold mt-0.5">✓</span>
+                            <span className="text-amber-500 font-bold mt-0.5">✓</span>
                             <span><strong>Live Sarkari Alerts & "majhi naukri" notifications:</strong> Real-time indexing of all central and state vacancy boards (Police Bharti, MPSC, UPSC, Banking, SSC, Railway) so you never miss an application deadline.</span>
                           </li>
                           <li className="flex items-start gap-2">
-                            <span className="text-amber-400 font-bold mt-0.5">✓</span>
+                            <span className="text-amber-500 font-bold mt-0.5">✓</span>
                             <span><strong>Premium High-Fidelity Mock Tests:</strong> Built-in interactive exam simulators styled to match standard national testing rules, featuring immediate feedback, explanation desks, and timing tracking.</span>
                           </li>
                           <li className="flex items-start gap-2">
-                            <span className="text-amber-400 font-bold mt-0.5">✓</span>
+                            <span className="text-amber-500 font-bold mt-0.5">✓</span>
                             <span><strong>PYQ Solved Archives:</strong> Verified previous year paper PDFs with key explanations available for secure download to assist your comprehensive <strong>online preparation</strong>.</span>
                           </li>
                         </ul>
@@ -2385,28 +2535,28 @@ export default function App() {
 
                       {/* Sub-section B */}
                       <div>
-                        <h3 className="text-base font-bold text-amber-400 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+                        <h3 className="text-base font-bold text-amber-600 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
                           🤝 Advertise & Partner with MaziExam
                         </h3>
-                        <p className="text-slate-300 text-xs leading-relaxed">
+                        <p className="text-slate-600 text-xs leading-relaxed font-medium">
                           We collaborate actively with external education publishers, private institutions, tutoring academies, and recruiters to broadcast critical placement news:
                         </p>
-                        <ul className="mt-3 space-y-2 text-xs text-slate-300">
+                        <ul className="mt-3 space-y-2 text-xs text-slate-600">
                           <li className="flex items-start gap-2">
-                            <span className="text-indigo-400 font-bold mt-0.5">■</span>
+                            <span className="text-[#004aad] font-bold mt-0.5">■</span>
                             <span><strong>Collaborative Advertising:</strong> Partner with us to run banner promotions, vacancy alerts, or sponsored preparation materials targeted at over 50,000 active students in Maharashtra.</span>
                           </li>
                           <li className="flex items-start gap-2">
-                            <span className="text-indigo-400 font-bold mt-0.5">■</span>
+                            <span className="text-[#004aad] font-bold mt-0.5">■</span>
                             <span><strong>Private Recruitment Integration:</strong> Private parties and local enterprises can list job placements and remote workspace opportunities directly to find qualified candidates.</span>
                           </li>
                           <li className="flex items-start gap-2">
-                            <span className="text-indigo-400 font-bold mt-0.5">■</span>
+                            <span className="text-[#004aad] font-bold mt-0.5">■</span>
                             <span><strong>Coaching Academy Tie-Ups:</strong> Co-brand state-wide test series and distribute specialized preparation resources using our high-throughput secure content delivery pipelines.</span>
                           </li>
                         </ul>
-                        <p className="text-[10px] text-slate-400 italic mt-3.5 leading-normal">
-                          To submit an advertising proposal, navigate to our <button onClick={() => { setCurrentPage("contact"); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="text-indigo-300 hover:underline cursor-pointer font-bold font-sans">Contact Desk</button> and choose "Business Collaborations" as the inquiry topic.
+                        <p className="text-[10px] text-slate-500 italic mt-3.5 leading-normal">
+                          To submit an advertising proposal, navigate to our <button onClick={() => { setCurrentPage("contact"); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="text-[#004aad] hover:underline cursor-pointer font-bold font-sans">Contact Desk</button> and choose "Business Collaborations" as the inquiry topic.
                         </p>
                       </div>
                     </div>
@@ -4539,16 +4689,54 @@ export default function App() {
                           <h4 className="text-xs font-black uppercase text-slate-900 tracking-wider border-b pb-2">
                             🛡️ Simulator Launcher
                           </h4>
-                          <div className="p-4 bg-white border border-slate-100 rounded-xl">
-                            <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Attempts Allowed</span>
-                            <span className="text-xl font-black text-slate-800 font-mono block mt-1">Unlimited (Free Sandbox)</span>
+                          <div className="p-4 bg-white border border-slate-100 rounded-xl space-y-3">
+                            <div>
+                              <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t("Total Attempts Allowed")}</span>
+                              <span className="text-sm font-black text-slate-800 font-mono block mt-1">
+                                {hasPortalPass || unlockedPacks.includes("all_selection_pass") || unlockedPacks.includes("selection_pass")
+                                  ? t("Unlimited (Pass Active)")
+                                  : t("3 Attempts (Free Limit)")}
+                              </span>
+                            </div>
+                            <div className="border-t border-slate-100 pt-2.5">
+                              <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t("Attempts Used")}</span>
+                              <span className="text-sm font-black text-slate-800 font-mono block mt-1">
+                                {getAttemptsCount(selectedMock.id)} / {hasPortalPass || unlockedPacks.includes("all_selection_pass") || unlockedPacks.includes("selection_pass") ? "∞" : "3"}
+                              </span>
+                            </div>
                           </div>
-                          <button
-                            onClick={() => handleStartTest(selectedMock)}
-                            className="w-full bg-[#004aad] hover:bg-[#003c8f] text-white font-extrabold text-xs py-3.5 rounded-lg transition-all shadow-3xs uppercase tracking-wider cursor-pointer"
-                          >
-                            🚀 Start Simulator Now
-                          </button>
+                          
+                          {getAttemptsCount(selectedMock.id) >= 3 && !(hasPortalPass || unlockedPacks.includes("all_selection_pass") || unlockedPacks.includes("selection_pass")) ? (
+                            <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-left">
+                              <p className="text-[10px] text-red-600 font-bold leading-normal">
+                                ⚠️ {t("You have used all 3 free attempts for this test. Please unlock the Portal Pass to get unlimited attempts!")}
+                              </p>
+                              <button
+                                onClick={() => {
+                                  if (!currentUser) {
+                                    setAuthModalOpen(true);
+                                  } else {
+                                    setPaymentType("portal_pass");
+                                    setPaymentTargetPack(null);
+                                    setPaymentAmount(50);
+                                    setPaymentSuccess(false);
+                                    setPaymentPending(false);
+                                    setPaymentModalOpen(true);
+                                  }
+                                }}
+                                className="mt-2 w-full bg-red-600 hover:bg-red-700 text-white font-extrabold text-[10px] py-1.5 px-2.5 rounded uppercase tracking-wider transition-all cursor-pointer"
+                              >
+                                {t("Unlock Unlimited Attempts")}
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => handleStartTest(selectedMock)}
+                              className="w-full bg-[#004aad] hover:bg-[#003c8f] text-white font-extrabold text-xs py-3.5 rounded-lg transition-all shadow-3xs uppercase tracking-wider cursor-pointer"
+                            >
+                              🚀 Start Simulator Now
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -4940,215 +5128,857 @@ export default function App() {
 
       {/* INTERACTIVE MODAL 3: EXAM SIMULATOR */}
       {activeTestModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto" id="test-modal-overlay">
-          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full my-6 flex flex-col border border-gray-200 max-h-[92vh]" id="test-modal">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto lg:p-0 lg:overflow-hidden" id="test-modal-overlay">
+          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full my-6 flex flex-col border border-gray-200 max-h-[92vh] lg:rounded-none lg:max-w-none lg:w-screen lg:h-screen lg:my-0 lg:max-h-none lg:border-0 overflow-hidden" id="test-modal">
             
-            {/* Simulator Header */}
-            <div className="bg-[#004aad] text-white p-4 md:p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 rounded-t-xl sticky top-0 z-10 shadow-sm">
-              <div className="text-left">
-                <span className="text-[10px] font-bold uppercase tracking-wider bg-white/20 px-2 py-0.5 rounded-full inline-block">
-                  Live Exam Simulator
-                </span>
-                <h3 className="text-base md:text-lg font-extrabold mt-0.5">{activeTestModal.title}</h3>
-              </div>
-              <div className="flex items-center gap-2.5 bg-white/10 px-3.5 py-1.5 rounded-lg border border-white/15" id="test-timer-badge">
-                <Clock size={16} className="text-blue-200" />
-                <span className="font-mono text-sm font-bold leading-none">
-                  {testSubmitted ? "TEST OVER" : formatTime(testTimer)}
-                </span>
-              </div>
-            </div>
+            {/* DESKTOP SPLIT VIEW (lg: and up) */}
+            {(() => {
+              const subjects = getTestSubjectsAndQuestions(activeTestModal.id, activeTestModal.questions.length);
+              const activeQuestion = activeTestModal.questions[testCurrentQuestion];
+              const activeSubject = subjects.find(
+                (sub) => testCurrentQuestion >= sub.startIdx && testCurrentQuestion <= sub.endIdx
+              ) || subjects[0];
 
-            {/* Questions area / Results summary */}
-            <div className="p-5 md:p-8 flex-grow overflow-y-auto text-left flex flex-col">
-              {!testSubmitted ? (
-                // Active Quiz Form
-                <div className="flex flex-col flex-grow">
-                  {/* Progress Indicator */}
-                  <div className="flex justify-between items-center mb-6 text-xs text-slate-500 font-bold">
-                    <span className="uppercase tracking-wider">
-                      Question {testCurrentQuestion + 1} of {activeTestModal.questions.length}
-                    </span>
-                    <span className="font-mono bg-blue-50 text-[#004aad] px-2 py-1 rounded-md">
-                      {Math.round(((testCurrentQuestion + 1) / activeTestModal.questions.length) * 100)}% Complete
-                    </span>
+              const correctCount = testScore;
+              const wrongCount = activeTestModal.questions.filter(q => testAnswers[q.id] !== undefined && testAnswers[q.id] !== q.correctAnswer).length;
+              const skippedCount = activeTestModal.questions.filter(q => testAnswers[q.id] === undefined).length;
+              const totalCandidates = 500;
+              const calculatedRank = Math.max(1, Math.round((1 - (testScore / activeTestModal.questions.length)) * 480) + 1);
+
+              return (
+                <div className="hidden lg:flex flex-col h-full w-full bg-white overflow-hidden" id="test-desktop-view">
+                  {/* Header Row */}
+                  <div className="py-3 px-6 border-b border-slate-200 flex items-center justify-between bg-white shrink-0 shadow-sm border-b-2 border-b-[#004aad]">
+                    <div className="flex items-center gap-3">
+                      <AppLogo className="h-14 w-auto object-contain scale-110" />
+                      <span className="text-2xl font-black tracking-tight font-sans">
+                        <span className="text-[#ff5e00]">Mazi</span><span className="text-[#004aad]">Exam</span>
+                      </span>
+                    </div>
+                    <h3 className="text-base font-extrabold text-slate-900 font-sans tracking-tight">
+                      {t("Mock Test")} - {activeTestModal.title}
+                    </h3>
+                    <div className="flex items-center gap-3">
+                      {/* Language Selection */}
+                      <div className="flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200 shadow-3xs" id="desktop-test-lang-switcher">
+                        <span className="text-xs font-bold text-slate-500 font-sans">{t("Select Language")} :</span>
+                        <select
+                          value={currentLang}
+                          onChange={(e) => handleLanguageChange(e.target.value as "en" | "hi" | "mr")}
+                          className="bg-white border border-slate-300 text-slate-800 text-xs font-bold py-1 px-2.5 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#004aad] cursor-pointer"
+                        >
+                          <option value="en">English</option>
+                          <option value="hi">हिंदी (Hindi)</option>
+                          <option value="mr">मराठी (Marathi)</option>
+                        </select>
+                      </div>
+
+                      <div className="flex items-center gap-2.5 font-mono text-base font-black text-slate-800 bg-slate-100 px-4.5 py-2 rounded-xl border border-slate-200 shadow-3xs" id="test-timer-container">
+                        <span className="text-[#004aad] font-sans font-bold">{t("Timer")} :</span>
+                        <span className="tracking-wide text-[#ff5e00]">{testSubmitted ? "00 : 00 : 00" : formatTimeHrMinSec(testTimer)}</span>
+                      </div>
+                    </div>
                   </div>
 
-                  {/* Question Prompt */}
-                  <div className="bg-slate-50 p-4 md:p-5 rounded-lg border border-slate-200 mb-6 flex-shrink-0">
-                    <h4 className="text-base md:text-lg font-bold text-slate-800 leading-relaxed">
-                      {activeTestModal.questions[testCurrentQuestion].question}
-                    </h4>
-                  </div>
-
-                  {/* Multiple Choice Options */}
-                  <div className="flex flex-col gap-3 flex-grow">
-                    {activeTestModal.questions[testCurrentQuestion].options.map((option, idx) => {
-                      const isSelected = testAnswers[activeTestModal.questions[testCurrentQuestion].id] === idx;
+                  {/* Subject Bar */}
+                  <div className="bg-slate-50 border-b border-slate-200 py-3 px-6 flex items-center gap-3 overflow-x-auto shrink-0 shadow-3xs">
+                    {subjects.map((sub, idx) => {
+                      const isActive = activeSubject.name === sub.name;
                       return (
                         <button
                           key={idx}
-                          onClick={() => handleSelectOption(activeTestModal.questions[testCurrentQuestion].id, idx)}
-                          className={`w-full text-left p-4 rounded-lg border-2 font-semibold text-sm transition-all flex items-center justify-between gap-3 ${
-                            isSelected 
-                              ? "border-[#004aad] bg-blue-50/50 text-[#004aad]" 
-                              : "border-slate-200 hover:border-slate-300 text-slate-700 bg-white"
+                          onClick={() => setTestCurrentQuestion(sub.startIdx)}
+                          className={`px-5 py-2 rounded-full text-xs font-extrabold tracking-wide uppercase transition-all shadow-3xs cursor-pointer ${
+                            isActive
+                              ? "bg-[#004aad] text-white shadow-md shadow-[#004aad]/20"
+                              : "bg-white hover:bg-slate-100 text-slate-600 border border-slate-200"
                           }`}
                         >
-                          <span>{option}</span>
-                          <span className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                            isSelected 
-                              ? "border-[#004aad] bg-[#004aad]" 
-                              : "border-slate-300"
-                          }`}>
-                            {isSelected && <span className="w-2 h-2 rounded-full bg-white" />}
-                          </span>
+                          {t(sub.name)}
                         </button>
                       );
                     })}
                   </div>
-                </div>
-              ) : (
-                // Results and Detailed Review Screen
-                <div className="flex flex-col items-center justify-center py-4 text-center">
-                  <div className="w-20 h-20 bg-[#004aad]/10 rounded-full flex items-center justify-center text-[#004aad] mb-4">
-                    <Trophy size={42} className="stroke-[1.5]" />
-                  </div>
-                  <h3 className="text-xl md:text-2xl font-extrabold text-[#004aad]">Mock Test Completed!</h3>
-                  <p className="text-slate-500 mt-1 font-medium">Your score has been successfully computed under official parameters.</p>
-                  
-                  {/* Scoreboard Widget */}
-                  <div className="my-6 bg-slate-50 border border-slate-200 p-4 sm:p-6 rounded-xl flex items-center justify-around gap-4 sm:gap-12 w-full max-w-md shadow-sm">
-                    <div className="text-center">
-                      <span className="text-slate-400 text-xs font-bold uppercase tracking-wider block">Raw Score</span>
-                      <strong className="text-3xl font-extrabold text-slate-800 font-mono">
-                        {testScore} / {activeTestModal.questions.length}
-                      </strong>
-                    </div>
-                    <div className="w-px h-10 bg-slate-300" />
-                    <div className="text-center">
-                      <span className="text-slate-400 text-xs font-bold uppercase tracking-wider block">Percentage</span>
-                      <strong className="text-3xl font-extrabold text-[#004aad] font-mono">
-                        {Math.round((testScore / activeTestModal.questions.length) * 100)}%
-                      </strong>
-                    </div>
-                  </div>
 
-                  {/* Detailed Solutions Section */}
-                  <div className="w-full text-left mt-4 border-t border-slate-100 pt-6">
-                    <h4 className="font-extrabold text-sm uppercase tracking-widest text-[#004aad] mb-4">
-                      Review Questions & Solutions
-                    </h4>
-                    <div className="flex flex-col gap-5">
-                      {activeTestModal.questions.map((q, idx) => {
-                        const userAns = testAnswers[q.id];
-                        const isCorrect = userAns === q.correctAnswer;
-                        return (
-                          <div key={q.id} className="border border-slate-200 rounded-lg p-4 bg-white shadow-xs">
-                            <p className="font-bold text-slate-800 text-sm md:text-base">
-                              Q{idx + 1}. {q.question}
-                            </p>
-                            
-                            <div className="mt-3 flex flex-col gap-1.5 pl-2 text-xs md:text-sm">
-                              {q.options.map((opt, oIdx) => {
-                                const isCorrectOpt = oIdx === q.correctAnswer;
-                                const isUserOpt = oIdx === userAns;
-                                return (
-                                  <div 
-                                    key={oIdx}
-                                    className={`flex items-center gap-2 p-1 px-2.5 rounded ${
-                                      isCorrectOpt 
-                                        ? "bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold" 
-                                        : isUserOpt 
-                                          ? "bg-red-50 text-red-800 border border-red-200" 
-                                          : "text-slate-600"
-                                    }`}
-                                  >
-                                    <span>{opt}</span>
-                                    {isCorrectOpt && <CheckCircle2 size={14} className="text-emerald-600 ml-auto flex-shrink-0" />}
-                                    {isUserOpt && !isCorrectOpt && <XCircle size={14} className="text-red-600 ml-auto flex-shrink-0" />}
-                                  </div>
-                                );
-                              })}
+                  {/* Inner Workspace Layout */}
+                  <div className="flex flex-row flex-grow overflow-hidden">
+                    {/* Left MCQ Pane */}
+                    <div className="w-[72%] h-full overflow-y-auto p-8 flex flex-col gap-6 bg-white">
+                      {/* Performance Report Card */}
+                      {testSubmitted && (
+                        <div className="bg-slate-50 border border-slate-200/80 p-5 rounded-2xl flex flex-col gap-4 text-left shadow-3xs" id="test-submitted-scorecard">
+                          <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+                            <div className="flex items-center gap-2">
+                              <Trophy size={20} className="text-[#004aad]" />
+                              <h4 className="text-sm font-black text-slate-800 uppercase tracking-wider">{t("Performance Report")}</h4>
+                            </div>
+                            <span className="text-xs font-bold text-slate-500 bg-slate-200/60 px-2.5 py-1 rounded-md">
+                              {t("Official Answer Key & Results")}
+                            </span>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            {/* Rank Indicator */}
+                            <div className="bg-white border border-slate-150 p-3.5 rounded-xl flex items-center gap-3 shadow-3xs">
+                              <div className="w-10 h-10 bg-amber-50 text-amber-600 rounded-lg flex items-center justify-center shrink-0">
+                                <Award size={20} />
+                              </div>
+                              <div>
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">{t("Your Rank")}</span>
+                                <strong className="text-base font-extrabold text-slate-800 font-mono">
+                                  #{calculatedRank} <span className="text-xs font-medium text-slate-500">/ {totalCandidates}</span>
+                                </strong>
+                              </div>
                             </div>
 
-                            {/* Detailed Explanation */}
-                            <div className="mt-3 bg-blue-50/50 p-3 rounded border border-blue-100 text-xs text-slate-600">
-                              <strong className="text-[#004aad] block mb-0.5">Solution & Explanation:</strong>
-                              {q.explanation}
+                            {/* Correct Count */}
+                            <div className="bg-white border border-slate-150 p-3.5 rounded-xl flex items-center gap-3 shadow-3xs">
+                              <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-lg flex items-center justify-center shrink-0">
+                                <CheckCircle2 size={20} />
+                              </div>
+                              <div>
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">{t("Right Answer")}</span>
+                                <strong className="text-base font-extrabold text-emerald-600 font-mono">
+                                  {correctCount} <span className="text-xs font-medium text-slate-500">/ {activeTestModal.questions.length}</span>
+                                </strong>
+                              </div>
+                            </div>
+
+                            {/* Incorrect Count */}
+                            <div className="bg-white border border-slate-150 p-3.5 rounded-xl flex items-center gap-3 shadow-3xs">
+                              <div className="w-10 h-10 bg-red-50 text-red-600 rounded-lg flex items-center justify-center shrink-0">
+                                <XCircle size={20} />
+                              </div>
+                              <div>
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">{t("Wrong Answer")}</span>
+                                <strong className="text-base font-extrabold text-red-600 font-mono">
+                                  {wrongCount} <span className="text-xs font-medium text-slate-500">/ {activeTestModal.questions.length}</span>
+                                </strong>
+                              </div>
+                            </div>
+
+                            {/* Skipped Count */}
+                            <div className="bg-white border border-slate-150 p-3.5 rounded-xl flex items-center gap-3 shadow-3xs">
+                              <div className="w-10 h-10 bg-slate-50 text-slate-600 rounded-lg flex items-center justify-center shrink-0">
+                                <Clock size={20} />
+                              </div>
+                              <div>
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">{t("Skipped")}</span>
+                                <strong className="text-base font-extrabold text-slate-700 font-mono">
+                                  {skippedCount} <span className="text-xs font-medium text-slate-500">/ {activeTestModal.questions.length}</span>
+                                </strong>
+                              </div>
                             </div>
                           </div>
+                        </div>
+                      )}
+
+                      {/* Question Index and Progress */}
+                      <div className="flex justify-between items-center text-xs text-slate-500 font-extrabold uppercase tracking-wider bg-slate-50/80 px-5 py-3.5 rounded-xl border border-slate-200/60">
+                        <span>
+                          {t("Question")} {testCurrentQuestion + 1} {t("of")} {activeTestModal.questions.length}
+                        </span>
+                        <span className="font-mono bg-blue-50 text-[#004aad] px-2.5 py-1 rounded-md border border-blue-100">
+                          {Math.round(((testCurrentQuestion + 1) / activeTestModal.questions.length) * 100)}% {t("Complete")}
+                        </span>
+                      </div>
+
+                      {/* Question prompt card */}
+                      <div className="bg-slate-50/50 p-6 rounded-2xl border border-slate-150 shadow-3xs text-left">
+                        <h4 className="text-lg md:text-xl font-bold text-slate-800 leading-relaxed font-sans">
+                          {t(activeQuestion.question)}
+                        </h4>
+                      </div>
+
+                      {/* Multiple choice options stack */}
+                      <div className="flex flex-col gap-3.5">
+                        {activeQuestion.options.map((option, idx) => {
+                          const isSelected = testAnswers[activeQuestion.id] === idx;
+                          let optionStyle = "";
+                          let iconMarkup = null;
+
+                          if (testSubmitted) {
+                            const isCorrectOpt = idx === activeQuestion.correctAnswer;
+                            const isUserOpt = idx === testAnswers[activeQuestion.id];
+
+                            if (isCorrectOpt) {
+                              optionStyle = "border-emerald-500 bg-emerald-50/60 text-emerald-900";
+                              iconMarkup = <CheckCircle2 size={18} className="text-emerald-600 shrink-0" />;
+                            } else if (isUserOpt) {
+                              optionStyle = "border-red-500 bg-red-50/60 text-red-900";
+                              iconMarkup = <XCircle size={18} className="text-red-600 shrink-0" />;
+                            } else {
+                              optionStyle = "border-slate-200 text-slate-500 bg-white opacity-60";
+                            }
+                          } else {
+                            if (isSelected) {
+                              optionStyle = "border-[#004aad] bg-blue-50/40 text-[#004aad] shadow-xs";
+                              iconMarkup = (
+                                <span className="w-5 h-5 rounded-full border-2 border-[#004aad] bg-[#004aad] flex items-center justify-center shrink-0">
+                                  <span className="w-2 h-2 rounded-full bg-white" />
+                                </span>
+                              );
+                            } else {
+                              optionStyle = "border-slate-200 hover:border-slate-300 hover:bg-slate-50/55 text-slate-700 bg-white";
+                              iconMarkup = <span className="w-5 h-5 rounded-full border-2 border-slate-300 shrink-0" />;
+                            }
+                          }
+
+                          return (
+                            <button
+                              key={idx}
+                              onClick={() => {
+                                if (!testSubmitted) {
+                                  handleSelectOption(activeQuestion.id, idx);
+                                }
+                              }}
+                              disabled={testSubmitted}
+                              className={`w-full text-left p-4 rounded-xl border-2 font-bold text-sm transition-all flex items-center justify-between gap-4 cursor-pointer ${optionStyle}`}
+                            >
+                              <span>{t(option)}</span>
+                              {iconMarkup}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Solution & Explanation box */}
+                      {testSubmitted && (
+                        <div className="bg-blue-50/60 p-5 rounded-xl border border-blue-100 text-sm text-slate-700 leading-relaxed shadow-3xs animate-fade-in text-left">
+                          <strong className="text-[#004aad] text-xs font-black uppercase tracking-wider block mb-1.5 flex items-center gap-1.5">
+                            <Sparkles size={14} className="text-[#004aad]" />
+                            {t("Solution & Explanation:")}
+                          </strong>
+                          {t(activeQuestion.explanation)}
+                        </div>
+                      )}
+
+                      {/* Back/Next controls */}
+                      <div className="flex items-center justify-between mt-auto pt-6 border-t border-slate-150">
+                        <button
+                          onClick={() => setTestCurrentQuestion((prev) => Math.max(0, prev - 1))}
+                          disabled={testCurrentQuestion === 0}
+                          className="flex items-center gap-2 px-6 py-3 rounded-xl border border-slate-300 text-slate-700 bg-white hover:bg-slate-50 active:bg-slate-100 disabled:opacity-35 disabled:cursor-not-allowed transition-all font-extrabold text-sm shadow-2xs cursor-pointer"
+                          id="btn-prev-question"
+                        >
+                          <ChevronLeft size={18} /> {t("Previous")}
+                        </button>
+                        <span className="text-xs font-bold text-slate-400 font-mono">
+                          {t("Question")} {testCurrentQuestion + 1} / {activeTestModal.questions.length}
+                        </span>
+                        <button
+                          onClick={() => setTestCurrentQuestion((prev) => Math.min(activeTestModal.questions.length - 1, prev + 1))}
+                          disabled={testCurrentQuestion === activeTestModal.questions.length - 1}
+                          className="flex items-center gap-2 px-7 py-3 rounded-xl bg-[#004aad] text-white hover:bg-[#004aad]/90 active:bg-[#003882] disabled:opacity-35 disabled:cursor-not-allowed transition-all font-extrabold text-sm shadow-xs cursor-pointer"
+                          id="btn-next-question"
+                        >
+                          {t("Next")} <ChevronRight size={18} />
+                        </button>
+                      </div>
+
+                      {/* Solutions Sheet */}
+                      {testSubmitted && (
+                        <div className="mt-8 border-t border-slate-200 pt-8 text-left" id="test-solutions-sheet-section">
+                          <div className="flex items-center gap-2 mb-6">
+                            <Sparkles size={18} className="text-[#004aad]" />
+                            <h4 className="text-base font-extrabold text-slate-800 uppercase tracking-wider">
+                              {t("Solutions Sheet")} & {t("Review Questions & Solutions")}
+                            </h4>
+                          </div>
+                          
+                          <div className="flex flex-col gap-6">
+                            {activeTestModal.questions.map((q, idx) => {
+                              const userAns = testAnswers[q.id];
+                              const isCorrect = userAns === q.correctAnswer;
+                              const isSkipped = userAns === undefined;
+                              
+                              let statusBadge = null;
+                              if (isCorrect) {
+                                statusBadge = (
+                                  <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 text-[10px] font-extrabold px-2.5 py-1 rounded-full border border-emerald-200 uppercase tracking-wider">
+                                    <CheckCircle2 size={12} /> {t("Right Answer")}
+                                  </span>
+                                );
+                              } else if (isSkipped) {
+                                statusBadge = (
+                                  <span className="inline-flex items-center gap-1 bg-slate-100 text-slate-600 text-[10px] font-extrabold px-2.5 py-1 rounded-full border border-slate-200 uppercase tracking-wider">
+                                    <Clock size={12} /> {t("Skipped")}
+                                  </span>
+                                );
+                              } else {
+                                statusBadge = (
+                                  <span className="inline-flex items-center gap-1 bg-red-50 text-red-700 text-[10px] font-extrabold px-2.5 py-1 rounded-full border border-red-200 uppercase tracking-wider">
+                                    <XCircle size={12} /> {t("Wrong Answer")}
+                                  </span>
+                                );
+                              }
+
+                              return (
+                                <div key={q.id} className="border border-slate-200 rounded-xl p-5 bg-slate-50/30 hover:bg-slate-50/50 transition-all shadow-3xs" id={`solution-q-${q.id}`}>
+                                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-3.5">
+                                    <span className="text-xs font-black text-slate-500 uppercase tracking-wider">
+                                      {t("Question")} {idx + 1}
+                                    </span>
+                                    {statusBadge}
+                                  </div>
+                                  
+                                  <p className="font-bold text-slate-800 text-sm md:text-base mb-4">
+                                    {t(q.question)}
+                                  </p>
+                                  
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 mb-4">
+                                    {q.options.map((opt, oIdx) => {
+                                      const isCorrectOpt = oIdx === q.correctAnswer;
+                                      const isUserOpt = oIdx === userAns;
+                                      
+                                      let optionStyle = "border-slate-200 text-slate-600 bg-white";
+                                      let rightWrongBadge = null;
+                                      
+                                      if (isCorrectOpt) {
+                                        optionStyle = "border-emerald-400 bg-emerald-50/60 text-emerald-900 font-bold";
+                                        rightWrongBadge = (
+                                          <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded border border-emerald-200">
+                                            {t("Correct Option")}
+                                          </span>
+                                        );
+                                      } else if (isUserOpt) {
+                                        optionStyle = "border-red-400 bg-red-50/60 text-red-900 font-bold";
+                                        rightWrongBadge = (
+                                          <span className="text-[10px] bg-red-100 text-red-800 font-bold px-2 py-0.5 rounded border border-red-200">
+                                            {t("Your Option")}
+                                          </span>
+                                        );
+                                      }
+                                      
+                                      return (
+                                        <div key={oIdx} className={`p-3 rounded-lg border text-xs font-bold flex items-center justify-between gap-3 ${optionStyle}`}>
+                                          <span>{t(opt)}</span>
+                                          {rightWrongBadge}
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                  
+                                  {/* Explanation box */}
+                                  <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100 text-xs text-slate-600 leading-relaxed">
+                                    <strong className="text-[#004aad] text-xs font-black uppercase tracking-wider block mb-1.5">
+                                      {t("Solution & Explanation:")}
+                                    </strong>
+                                    {t(q.explanation)}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Right-Hand Control Sidebar */}
+                    <div className="w-[28%] h-full border-l border-[#004aad]/25 bg-slate-50/50 p-6 flex flex-col justify-between overflow-y-auto">
+                      <div>
+                        {/* High contrast info card */}
+                        {testSubmitted ? (
+                          <div className="bg-gradient-to-br from-[#004aad] to-[#003375] text-white p-5 rounded-2xl shadow-md flex flex-col items-center justify-center text-center gap-3.5">
+                            <Trophy size={32} className="text-amber-300 animate-pulse" />
+                            <div>
+                              <h4 className="text-[10px] font-black uppercase tracking-widest text-blue-200">{t("Performance Summary")}</h4>
+                              <div className="text-3xl font-black font-mono mt-1">
+                                {testScore} / {activeTestModal.questions.length}
+                              </div>
+                              <div className="text-[11px] font-bold bg-white/15 px-3 py-1 rounded-full inline-block mt-2 border border-white/10">
+                                {Math.round((testScore / activeTestModal.questions.length) * 100)}% {t("Score")}
+                              </div>
+                            </div>
+                            <div className="w-full border-t border-white/15 pt-3.5 flex flex-col gap-2 text-left">
+                              <div className="flex justify-between items-center text-xs">
+                                <span className="text-blue-200 font-semibold">{t("Your Rank")}:</span>
+                                <span className="font-extrabold font-mono text-amber-300">#{calculatedRank} / {totalCandidates}</span>
+                              </div>
+                              <div className="flex justify-between items-center text-xs">
+                                <span className="text-blue-200 font-semibold">{t("Right Answer")}:</span>
+                                <span className="font-extrabold font-mono text-emerald-400">+{correctCount}</span>
+                              </div>
+                              <div className="flex justify-between items-center text-xs">
+                                <span className="text-blue-200 font-semibold">{t("Wrong Answer")}:</span>
+                                <span className="font-extrabold font-mono text-red-400">-{wrongCount}</span>
+                              </div>
+                              <div className="flex justify-between items-center text-xs">
+                                <span className="text-blue-200 font-semibold">{t("Skipped")}:</span>
+                                <span className="font-extrabold font-mono text-slate-300">{skippedCount}</span>
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="bg-[#004aad] text-white p-5 rounded-2xl shadow-md flex flex-col gap-2.5">
+                            <h4 className="text-sm font-black uppercase tracking-wider flex items-center gap-2">
+                              <ShieldAlert size={16} className="text-amber-300 animate-pulse" />
+                              {t("Instructions")}
+                            </h4>
+                            <ul className="text-xs text-blue-100 list-disc list-inside space-y-1.5 leading-relaxed text-left font-semibold">
+                              <li>{t("+2 marks for correct answers")}</li>
+                              <li>{t("No negative marking applied")}</li>
+                              <li>{t("Do not refresh or close this tab")}</li>
+                              <li>{t("All questions are compulsory")}</li>
+                            </ul>
+                          </div>
+                        )}
+
+                        {/* Mark buttons after instructions */}
+                        {!testSubmitted && (
+                          <div className="mt-4 flex flex-col sm:flex-row gap-3" id="test-mark-buttons-container">
+                            <button
+                              onClick={() => {
+                                setTestMarkedForReview((prev) => {
+                                  const newVal = !prev[activeQuestion.id];
+                                  return { ...prev, [activeQuestion.id]: newVal };
+                                });
+                                setTestMarkedForLater((prev) => ({ ...prev, [activeQuestion.id]: false }));
+                              }}
+                              className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl border-2 font-bold text-xs transition-all shadow-3xs cursor-pointer ${
+                                testMarkedForReview[activeQuestion.id]
+                                  ? "bg-orange-500 text-white border-orange-600 hover:bg-orange-600 shadow-md shadow-orange-500/25"
+                                  : "border-orange-300 text-orange-600 bg-orange-50 hover:bg-orange-100/80 hover:border-orange-400"
+                              }`}
+                              id="btn-mark-for-review"
+                            >
+                              <Bookmark size={15} className="shrink-0" />
+                              {testMarkedForReview[activeQuestion.id] ? t("Marked for Review") : t("Mark for Review")}
+                            </button>
+                            <button
+                              onClick={() => {
+                                setTestMarkedForLater((prev) => {
+                                  const newVal = !prev[activeQuestion.id];
+                                  return { ...prev, [activeQuestion.id]: newVal };
+                                });
+                                setTestMarkedForReview((prev) => ({ ...prev, [activeQuestion.id]: false }));
+                              }}
+                              className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl border-2 font-bold text-xs transition-all shadow-3xs cursor-pointer ${
+                                testMarkedForLater[activeQuestion.id]
+                                  ? "bg-emerald-600 text-white border-emerald-700 hover:bg-emerald-700 shadow-md shadow-emerald-600/25"
+                                  : "border-emerald-300 text-emerald-600 bg-emerald-50 hover:bg-emerald-100/80 hover:border-emerald-400"
+                              }`}
+                              id="btn-mark-for-later"
+                            >
+                              <Clock size={15} className="shrink-0" />
+                              {testMarkedForLater[activeQuestion.id] ? t("Marked for Later") : t("Mark for Later")}
+                            </button>
+                          </div>
+                        )}
+
+                        {/* Middle Section: Question numbers grid */}
+                        <div className="flex flex-col gap-3 my-6 text-left">
+                          <h4 className="text-xs font-bold uppercase text-slate-500 tracking-wider">
+                            {t("Number of questions:")}
+                          </h4>
+                          <div className="grid grid-cols-5 gap-2.5" id="desktop-questions-grid">
+                            {activeTestModal.questions.map((q, idx) => {
+                              const isCurrent = idx === testCurrentQuestion;
+                              const isAnswered = testAnswers[q.id] !== undefined;
+
+                              let btnClass = "";
+                              if (testSubmitted) {
+                                const isCorrect = testAnswers[q.id] === q.correctAnswer;
+                                if (isCorrect) {
+                                  btnClass = "bg-emerald-500 text-white hover:bg-emerald-600 border-emerald-600 shadow-sm";
+                                } else if (isAnswered) {
+                                  btnClass = "bg-red-500 text-white hover:bg-red-600 border-red-600 shadow-sm";
+                                } else {
+                                  btnClass = "bg-slate-100 text-slate-400 hover:bg-slate-200 border-slate-200";
+                                }
+                              } else {
+                                const isReview = !!testMarkedForReview[q.id];
+                                const isLater = !!testMarkedForLater[q.id];
+
+                                if (isReview) {
+                                  btnClass = `bg-orange-500 text-white border-orange-600 font-bold hover:bg-orange-600 ${isCurrent ? "ring-2 ring-offset-2 ring-orange-500" : ""}`;
+                                } else if (isLater) {
+                                  btnClass = `bg-emerald-600 text-white border-emerald-700 font-bold hover:bg-emerald-700 ${isCurrent ? "ring-2 ring-offset-2 ring-emerald-600" : ""}`;
+                                } else if (isCurrent) {
+                                  btnClass = "ring-2 ring-offset-2 ring-[#004aad] border-[#004aad] bg-blue-50 text-[#004aad] font-black";
+                                } else if (isAnswered) {
+                                  btnClass = "bg-blue-100 text-[#004aad] border-blue-200 font-bold hover:bg-blue-200/80";
+                                } else {
+                                  btnClass = "bg-white text-slate-600 hover:bg-slate-100 border-slate-200";
+                                }
+                              }
+
+                              return (
+                                <button
+                                  key={q.id}
+                                  onClick={() => setTestCurrentQuestion(idx)}
+                                  className={`w-10 h-10 rounded-xl border text-sm font-bold flex items-center justify-center transition-all cursor-pointer ${btnClass}`}
+                                  id={`desktop-q-btn-${idx}`}
+                                >
+                                  {idx + 1}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Bottom Section: Action buttons */}
+                      <div className="mt-auto pt-6 border-t border-slate-200 flex flex-col gap-3">
+                        {!testSubmitted ? (
+                          <>
+                            <button
+                              onClick={handleSubmitTest}
+                              className="w-full bg-[#004aad] hover:bg-[#004aad]/90 text-white font-bold py-3.5 px-6 rounded-xl transition-all shadow-md shadow-[#004aad]/15 text-center uppercase tracking-wider text-sm cursor-pointer"
+                              id="desktop-submit-btn"
+                            >
+                              {t("Submit Exam Paper")}
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (confirm("Are you sure you want to exit the exam simulation? Your current state will be lost.")) {
+                                  setActiveTestModal(null);
+                                }
+                              }}
+                              className="w-full border border-slate-300 hover:bg-slate-100 text-slate-600 font-bold py-2.5 px-6 rounded-xl transition-all text-xs text-center cursor-pointer"
+                            >
+                              {t("Exit Simulator")}
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => handleStartTest(activeTestModal)}
+                              className="w-full bg-[#004aad]/10 text-[#004aad] hover:bg-[#004aad]/20 font-bold py-3.5 px-6 rounded-xl transition-all text-sm text-center flex items-center justify-center gap-2 cursor-pointer"
+                            >
+                              <RefreshCw size={14} /> {t("Retake Simulator")}
+                            </button>
+                            <button
+                              onClick={() => setActiveTestModal(null)}
+                              className="w-full bg-[#004aad] hover:bg-[#004aad]/90 text-white font-bold py-2.5 px-6 rounded-xl transition-all text-xs text-center cursor-pointer"
+                            >
+                              {t("Back to Portal")}
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* MOBILE/TABLET STACKED VIEW (< lg) */}
+            <div className="flex flex-col lg:hidden h-full max-h-[92vh]" id="test-mobile-view">
+              {/* Simulator Header */}
+              <div className="bg-[#004aad] text-white p-4 md:p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 rounded-t-xl sticky top-0 z-10 shadow-sm">
+                <div className="text-left">
+                  <span className="text-[10px] font-bold uppercase tracking-wider bg-white/20 px-2 py-0.5 rounded-full inline-block">
+                    Live Exam Simulator
+                  </span>
+                  <h3 className="text-base md:text-lg font-extrabold mt-0.5">{activeTestModal.title}</h3>
+                </div>
+                <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+                  {/* Mobile Language Selector */}
+                  <div className="flex items-center gap-1.5 bg-white/10 px-2.5 py-1.5 rounded-lg border border-white/15" id="mobile-test-lang-switcher">
+                    <span className="text-xs font-bold text-white/85">{t("Language")}:</span>
+                    <select
+                      value={currentLang}
+                      onChange={(e) => handleLanguageChange(e.target.value as "en" | "hi" | "mr")}
+                      className="bg-[#004aad] border border-white/20 text-white text-xs font-bold py-0.5 px-1.5 rounded-md focus:outline-none cursor-pointer"
+                    >
+                      <option value="en">EN</option>
+                      <option value="hi">हिंदी</option>
+                      <option value="mr">मराठी</option>
+                    </select>
+                  </div>
+
+                  <div className="flex items-center gap-2.5 bg-white/10 px-3.5 py-1.5 rounded-lg border border-white/15 shrink-0" id="test-timer-badge">
+                    <Clock size={16} className="text-blue-200" />
+                    <span className="font-mono text-sm font-bold leading-none">
+                      {testSubmitted ? "00 : 00 : 00" : formatTimeHrMinSec(testTimer)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Questions area / Results summary */}
+              <div className="p-5 md:p-8 flex-grow overflow-y-auto text-left flex flex-col">
+                {!testSubmitted ? (
+                  // Active Quiz Form
+                  <div className="flex flex-col flex-grow">
+                    {/* Progress Indicator */}
+                    <div className="flex justify-between items-center mb-6 text-xs text-slate-500 font-bold">
+                      <span className="uppercase tracking-wider">
+                        Question {testCurrentQuestion + 1} of {activeTestModal.questions.length}
+                      </span>
+                      <span className="font-mono bg-blue-50 text-[#004aad] px-2 py-1 rounded-md">
+                        {Math.round(((testCurrentQuestion + 1) / activeTestModal.questions.length) * 100)}% Complete
+                      </span>
+                    </div>
+
+                    {/* Question Prompt */}
+                    <div className="bg-slate-50 p-4 md:p-5 rounded-lg border border-slate-200 mb-6 flex-shrink-0">
+                      <h4 className="text-base md:text-lg font-bold text-slate-800 leading-relaxed">
+                        {t(activeTestModal.questions[testCurrentQuestion].question)}
+                      </h4>
+                    </div>
+
+                    {/* Multiple Choice Options */}
+                    <div className="flex flex-col gap-3 flex-grow">
+                      {activeTestModal.questions[testCurrentQuestion].options.map((option, idx) => {
+                        const isSelected = testAnswers[activeTestModal.questions[testCurrentQuestion].id] === idx;
+                        return (
+                          <button
+                            key={idx}
+                            onClick={() => handleSelectOption(activeTestModal.questions[testCurrentQuestion].id, idx)}
+                            className={`w-full text-left p-4 rounded-lg border-2 font-semibold text-sm transition-all flex items-center justify-between gap-3 ${
+                              isSelected 
+                                ? "border-[#004aad] bg-blue-50/50 text-[#004aad]" 
+                                : "border-slate-200 hover:border-slate-300 text-slate-700 bg-white"
+                            }`}
+                          >
+                            <span>{t(option)}</span>
+                            <span className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                              isSelected 
+                                ? "border-[#004aad] bg-[#004aad]" 
+                                : "border-slate-300"
+                            }`}>
+                              {isSelected && <span className="w-2 h-2 rounded-full bg-white" />}
+                            </span>
+                          </button>
                         );
                       })}
                     </div>
                   </div>
-                </div>
-              )}
-            </div>
+                ) : (
+                  // Results and Detailed Review Screen
+                  (() => {
+                    const mCorrectCount = testScore;
+                    const mWrongCount = activeTestModal.questions.filter(q => testAnswers[q.id] !== undefined && testAnswers[q.id] !== q.correctAnswer).length;
+                    const mSkippedCount = activeTestModal.questions.filter(q => testAnswers[q.id] === undefined).length;
+                    const mRank = Math.max(1, Math.round((1 - (testScore / activeTestModal.questions.length)) * 480) + 1);
+                    return (
+                      <div className="flex flex-col items-center justify-center py-4 text-center w-full">
+                        <div className="w-20 h-20 bg-[#004aad]/10 rounded-full flex items-center justify-center text-[#004aad] mb-4">
+                          <Trophy size={42} className="stroke-[1.5]" />
+                        </div>
+                        <h3 className="text-xl md:text-2xl font-extrabold text-[#004aad]">{t("Mock Test Completed!")}</h3>
+                        <p className="text-slate-500 mt-1 font-medium text-xs md:text-sm px-4">
+                          {t("Your score has been successfully computed under official parameters.")}
+                        </p>
+                        
+                        {/* Scoreboard Widget */}
+                        <div className="my-6 bg-slate-50 border border-slate-200 p-4 rounded-2xl w-full max-w-md shadow-3xs text-left flex flex-col gap-4">
+                          <div className="flex items-center justify-between border-b border-slate-200 pb-2.5">
+                            <div className="flex items-center gap-1.5 text-[#004aad] font-extrabold text-xs uppercase tracking-wider">
+                              <Trophy size={14} />
+                              <span>{t("Performance Report")}</span>
+                            </div>
+                            <span className="font-extrabold text-[10px] text-slate-500 bg-slate-200/60 px-2.5 py-0.5 rounded">
+                              {t("Rank")}: #{mRank}
+                            </span>
+                          </div>
 
-            {/* Bottom Actions Row */}
-            <div className="bg-slate-50 border-t border-gray-200 px-5 py-4 flex flex-col sm:flex-row justify-between items-center gap-4 rounded-b-xl sticky bottom-0 z-10 shadow-inner">
-              {!testSubmitted ? (
-                // Active Quiz Controls
-                <>
-                  <div className="flex items-center gap-2">
+                          <div className="grid grid-cols-2 gap-3">
+                            {/* Rank */}
+                            <div className="bg-white border border-slate-150 p-3 rounded-xl shadow-3xs flex flex-col justify-center">
+                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">{t("Your Rank")}</span>
+                              <strong className="text-base font-extrabold text-slate-800 font-mono mt-0.5">
+                                #{mRank} <span className="text-[10px] font-semibold text-slate-400">/ 500</span>
+                              </strong>
+                            </div>
+
+                            {/* Raw Score */}
+                            <div className="bg-white border border-slate-150 p-3 rounded-xl shadow-3xs flex flex-col justify-center">
+                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">{t("Raw Score")}</span>
+                              <strong className="text-base font-extrabold text-[#004aad] font-mono mt-0.5">
+                                {testScore} / {activeTestModal.questions.length}
+                              </strong>
+                            </div>
+
+                            {/* Right Answers */}
+                            <div className="bg-emerald-50/50 border border-emerald-100 p-3 rounded-xl shadow-3xs flex flex-col justify-center">
+                              <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider block">{t("Right Answer")}</span>
+                              <strong className="text-base font-extrabold text-emerald-600 font-mono mt-0.5">
+                                {mCorrectCount}
+                              </strong>
+                            </div>
+
+                            {/* Wrong Answers */}
+                            <div className="bg-red-50/50 border border-red-100 p-3 rounded-xl shadow-3xs flex flex-col justify-center">
+                              <span className="text-[10px] font-bold text-red-600 uppercase tracking-wider block">{t("Wrong Answer")}</span>
+                              <strong className="text-base font-extrabold text-red-600 font-mono mt-0.5">
+                                {mWrongCount}
+                              </strong>
+                            </div>
+
+                            {/* Skipped */}
+                            <div className="bg-slate-100/60 border border-slate-150 p-3 rounded-xl shadow-3xs flex flex-col justify-center col-span-2">
+                              <div className="flex justify-between items-center">
+                                <div>
+                                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">{t("Skipped")}</span>
+                                  <strong className="text-base font-extrabold text-slate-700 font-mono mt-0.5">
+                                    {mSkippedCount}
+                                  </strong>
+                                </div>
+                                <div className="text-right">
+                                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">{t("Percentage")}</span>
+                                  <strong className="text-base font-extrabold text-[#004aad] font-mono mt-0.5">
+                                    {Math.round((testScore / activeTestModal.questions.length) * 100)}%
+                                  </strong>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Detailed Solutions Section */}
+                        <div className="w-full text-left mt-4 border-t border-slate-100 pt-6">
+                          <h4 className="font-extrabold text-xs uppercase tracking-wider text-[#004aad] mb-4 flex items-center gap-1.5">
+                            <Sparkles size={14} />
+                            {t("Review Questions & Solutions")}
+                          </h4>
+                          <div className="flex flex-col gap-5">
+                            {activeTestModal.questions.map((q, idx) => {
+                              const userAns = testAnswers[q.id];
+                              const isCorrect = userAns === q.correctAnswer;
+                              const isSkipped = userAns === undefined;
+                              
+                              let statusBadge = null;
+                              if (isCorrect) {
+                                statusBadge = (
+                                  <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 text-[9px] font-extrabold px-2 py-0.5 rounded-full border border-emerald-200 uppercase tracking-wider">
+                                    <CheckCircle2 size={10} /> {t("Right Answer")}
+                                  </span>
+                                );
+                              } else if (isSkipped) {
+                                statusBadge = (
+                                  <span className="inline-flex items-center gap-1 bg-slate-100 text-slate-600 text-[9px] font-extrabold px-2 py-0.5 rounded-full border border-slate-200 uppercase tracking-wider">
+                                    <Clock size={10} /> {t("Skipped")}
+                                  </span>
+                                );
+                              } else {
+                                statusBadge = (
+                                  <span className="inline-flex items-center gap-1 bg-red-50 text-red-700 text-[9px] font-extrabold px-2 py-0.5 rounded-full border border-red-200 uppercase tracking-wider">
+                                    <XCircle size={10} /> {t("Wrong Answer")}
+                                  </span>
+                                );
+                              }
+
+                              return (
+                                <div key={q.id} className="border border-slate-200 rounded-xl p-4 bg-white shadow-xs text-left" id={`mobile-sol-q-${q.id}`}>
+                                  <div className="flex items-center justify-between mb-2.5">
+                                    <span className="text-[11px] font-black text-slate-400 uppercase tracking-wider">
+                                      Q{idx + 1}
+                                    </span>
+                                    {statusBadge}
+                                  </div>
+                                  
+                                  <p className="font-bold text-slate-800 text-sm leading-relaxed mb-3">
+                                    {t(q.question)}
+                                  </p>
+                                  
+                                  <div className="flex flex-col gap-1.5 text-xs">
+                                    {q.options.map((opt, oIdx) => {
+                                      const isCorrectOpt = oIdx === q.correctAnswer;
+                                      const isUserOpt = oIdx === userAns;
+                                      return (
+                                        <div 
+                                          key={oIdx}
+                                          className={`flex items-center gap-2 p-2 px-3 rounded-lg border text-xs font-semibold ${
+                                            isCorrectOpt 
+                                              ? "bg-emerald-50 text-emerald-800 border-emerald-200 font-bold" 
+                                              : isUserOpt 
+                                                ? "bg-red-50 text-red-800 border-red-200" 
+                                                : "text-slate-600 bg-slate-50/50 border-slate-100"
+                                          }`}
+                                        >
+                                          <span>{t(opt)}</span>
+                                          {isCorrectOpt && <CheckCircle2 size={14} className="text-emerald-600 ml-auto flex-shrink-0" />}
+                                          {isUserOpt && !isCorrectOpt && <XCircle size={14} className="text-red-600 ml-auto flex-shrink-0" />}
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+
+                                  {/* Detailed Explanation */}
+                                  <div className="mt-3.5 bg-blue-50/50 p-3 rounded-xl border border-blue-100 text-xs text-slate-600 leading-relaxed">
+                                    <strong className="text-[#004aad] text-xs font-black uppercase tracking-wider block mb-1">
+                                      {t("Solution & Explanation:")}
+                                    </strong>
+                                    {t(q.explanation)}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()
+                )}
+              </div>
+
+              {/* Bottom Actions Row */}
+              <div className="bg-slate-50 border-t border-gray-200 px-5 py-4 flex flex-col sm:flex-row justify-between items-center gap-4 rounded-b-xl sticky bottom-0 z-10 shadow-inner">
+                {!testSubmitted ? (
+                  // Active Quiz Controls
+                  <>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setTestCurrentQuestion((prev) => Math.max(0, prev - 1))}
+                        disabled={testCurrentQuestion === 0}
+                        className="p-2 rounded-lg border border-gray-300 hover:bg-white text-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                        title="Back"
+                      >
+                        <ChevronLeft size={18} />
+                      </button>
+                      <span className="text-xs font-bold text-slate-500 font-mono">
+                        Q {testCurrentQuestion + 1} / {activeTestModal.questions.length}
+                      </span>
+                      <button
+                        onClick={() => setTestCurrentQuestion((prev) => Math.min(activeTestModal.questions.length - 1, prev + 1))}
+                        disabled={testCurrentQuestion === activeTestModal.questions.length - 1}
+                        className="p-2 rounded-lg border border-gray-300 hover:bg-white text-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                        title="Next"
+                      >
+                        <ChevronRight size={18} />
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
+                      <button
+                        onClick={() => {
+                          if (confirm("Are you sure you want to exit the exam simulation? Your current state will be lost.")) {
+                            setActiveTestModal(null);
+                          }
+                        }}
+                        className="flex-grow sm:flex-grow-0 border border-gray-300 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2 rounded-lg text-xs md:text-sm transition-all text-center"
+                      >
+                        Exit Simulator
+                      </button>
+                      <button
+                        onClick={handleSubmitTest}
+                        className="flex-grow sm:flex-grow-0 bg-[#004aad] hover:bg-[#004aad]/90 text-white font-bold px-6 py-2 rounded-lg text-xs md:text-sm transition-all text-center shadow-sm"
+                      >
+                        Submit Exam Paper
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  // Post-test Result Controls
+                  <div className="flex items-center gap-3.5 w-full justify-end">
                     <button
-                      onClick={() => setTestCurrentQuestion((prev) => Math.max(0, prev - 1))}
-                      disabled={testCurrentQuestion === 0}
-                      className="p-2 rounded-lg border border-gray-300 hover:bg-white text-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-                      title="Back"
+                      onClick={() => handleStartTest(activeTestModal)}
+                      className="bg-[#004aad]/10 text-[#004aad] hover:bg-[#004aad]/20 font-bold px-4 py-2 rounded-lg text-xs md:text-sm transition-all flex items-center gap-1.5"
                     >
-                      <ChevronLeft size={18} />
+                      Retake Simulator <RefreshCw size={14} />
                     </button>
-                    <span className="text-xs font-bold text-slate-500 font-mono">
-                      Q {testCurrentQuestion + 1} / {activeTestModal.questions.length}
-                    </span>
                     <button
-                      onClick={() => setTestCurrentQuestion((prev) => Math.min(activeTestModal.questions.length - 1, prev + 1))}
-                      disabled={testCurrentQuestion === activeTestModal.questions.length - 1}
-                      className="p-2 rounded-lg border border-gray-300 hover:bg-white text-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-                      title="Next"
+                      onClick={() => setActiveTestModal(null)}
+                      className="bg-[#004aad] hover:bg-[#004aad]/90 text-white font-bold px-5 py-2 rounded-lg text-xs md:text-sm transition-all"
                     >
-                      <ChevronRight size={18} />
+                      Back to Portal
                     </button>
                   </div>
-
-                  <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
-                    <button
-                      onClick={() => {
-                        if (confirm("Are you sure you want to exit the exam simulation? Your current state will be lost.")) {
-                          setActiveTestModal(null);
-                        }
-                      }}
-                      className="flex-grow sm:flex-grow-0 border border-gray-300 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2 rounded-lg text-xs md:text-sm transition-all text-center"
-                    >
-                      Exit Simulator
-                    </button>
-                    <button
-                      onClick={handleSubmitTest}
-                      className="flex-grow sm:flex-grow-0 bg-[#004aad] hover:bg-[#004aad]/90 text-white font-bold px-6 py-2 rounded-lg text-xs md:text-sm transition-all text-center shadow-sm"
-                    >
-                      Submit Exam Paper
-                    </button>
-                  </div>
-                </>
-              ) : (
-                // Post-test Result Controls
-                <div className="flex items-center gap-3.5 w-full justify-end">
-                  <button
-                    onClick={() => handleStartTest(activeTestModal)}
-                    className="bg-[#004aad]/10 text-[#004aad] hover:bg-[#004aad]/20 font-bold px-4 py-2 rounded-lg text-xs md:text-sm transition-all flex items-center gap-1.5"
-                  >
-                    Retake Simulator <RefreshCw size={14} />
-                  </button>
-                  <button
-                    onClick={() => setActiveTestModal(null)}
-                    className="bg-[#004aad] hover:bg-[#004aad]/90 text-white font-bold px-5 py-2 rounded-lg text-xs md:text-sm transition-all"
-                  >
-                    Back to Portal
-                  </button>
-                </div>
-              )}
+                )}
+              </div>
             </div>
 
           </div>
