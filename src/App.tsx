@@ -1501,23 +1501,23 @@ export default function App() {
         <div className="max-w-[1200px] mx-auto px-4 md:px-6 pt-5 pb-3 flex items-center justify-between">
           
           {/* Left: Logo & Stacked Text */}
-          <div className="flex items-center gap-3 cursor-pointer" id="header-logo-container" onClick={() => setCurrentPage("jobs")}>
+          <div className="flex items-center gap-1.5 sm:gap-3 cursor-pointer" id="header-logo-container" onClick={() => setCurrentPage("jobs")}>
             <AppLogo 
-              className="h-20 md:h-28 lg:h-32 w-auto object-contain transition-all"
+              className="h-10 sm:h-16 lg:h-20 w-auto object-contain transition-all"
               id="header-logo-img"
             />
             <div className="flex flex-col text-left" id="header-title-text">
-              <span className="text-lg md:text-xl font-extrabold text-[#004aad] tracking-tight leading-tight uppercase font-sans">
+              <span className="text-sm sm:text-base lg:text-lg font-extrabold text-[#004aad] tracking-tight leading-tight uppercase font-sans">
                 {t("Government Exams")}
               </span>
-              <span className="text-xs md:text-sm font-semibold text-gray-500 uppercase tracking-widest leading-none">
+              <span className="text-[9px] sm:text-xs font-semibold text-gray-500 uppercase tracking-widest leading-none mt-0.5">
                 {t("MockTest Portal")}
               </span>
             </div>
           </div>
 
           {/* Center: Navigation Links */}
-          <nav className="hidden xl:flex items-center gap-5 text-sm font-semibold" id="header-nav">
+          <nav className="hidden lg:flex items-center gap-5 text-sm font-semibold" id="header-nav">
             <button
               id="nav-link-jobs"
               onClick={() => { setCurrentPage("jobs"); setSearchQuery(""); }}
@@ -1674,7 +1674,7 @@ export default function App() {
         </div>
 
         {/* Mobile Navigation Row */}
-        <div className="flex md:hidden bg-slate-50 border-t border-gray-100 overflow-x-auto whitespace-nowrap py-3 px-2 gap-1.5 font-semibold text-xs scrollbar-none" id="mobile-navigation-row">
+        <div className="flex lg:hidden bg-slate-50 border-t border-gray-100 overflow-x-auto whitespace-nowrap py-3 px-2 gap-1.5 font-semibold text-xs scrollbar-none" id="mobile-navigation-row">
           <button
             id="mobile-nav-jobs"
             onClick={() => { setCurrentPage("jobs"); setSearchQuery(""); }}
@@ -5035,7 +5035,7 @@ export default function App() {
                   <p className="text-slate-500 mt-1 font-medium">Your score has been successfully computed under official parameters.</p>
                   
                   {/* Scoreboard Widget */}
-                  <div className="my-6 bg-slate-50 border border-slate-200 p-6 rounded-xl flex items-center justify-around gap-12 w-full max-w-md shadow-sm">
+                  <div className="my-6 bg-slate-50 border border-slate-200 p-4 sm:p-6 rounded-xl flex items-center justify-around gap-4 sm:gap-12 w-full max-w-md shadow-sm">
                     <div className="text-center">
                       <span className="text-slate-400 text-xs font-bold uppercase tracking-wider block">Raw Score</span>
                       <strong className="text-3xl font-extrabold text-slate-800 font-mono">

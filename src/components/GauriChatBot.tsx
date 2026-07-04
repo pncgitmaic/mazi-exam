@@ -403,7 +403,7 @@ export function GauriChatBot({ setCurrentPage, currentPage }: GauriChatBotProps)
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 30 }}
             transition={{ type: "spring", damping: 20 }}
-            className="fixed bottom-24 right-6 w-[350px] sm:w-[380px] h-[520px] bg-white border border-slate-200 rounded-2xl shadow-2xl z-50 flex flex-col overflow-hidden text-left"
+            className="fixed bottom-20 sm:bottom-24 right-4 sm:right-6 w-[calc(100vw-2rem)] sm:w-[380px] h-[480px] sm:h-[520px] bg-white border border-slate-200 rounded-2xl shadow-2xl z-50 flex flex-col overflow-hidden text-left"
           >
             {/* Header section with light layout */}
             <div className="p-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
