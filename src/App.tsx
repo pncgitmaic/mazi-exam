@@ -1771,61 +1771,331 @@ export default function App() {
           <div className="flex flex-col gap-4 mt-6" id="cards-stack-container">
             {/* INTERACTIVE LIVE VIEW: Rich academic exam items */}
             {currentPage === "jobs" ? (
-              // Job alerts list
-              filteredJobs.length > 0 ? (
-                filteredJobs.map((job) => (
-                  <div
-                    key={job.id}
-                    id={`job-card-${job.id}`}
-                    className="w-full bg-white border border-[#004aad] rounded-lg shadow-sm hover:shadow-md hover:border-2 transition-all p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 cursor-pointer group"
-                    onClick={() => setActiveJobModal(job)}
-                  >
-                    <div className="flex flex-col text-left">
-                      <div className="flex items-center gap-2.5 mb-1.5 flex-wrap">
-                        <span className={`font-bold text-[10px] md:text-xs px-2.5 py-0.5 rounded-full tracking-wider uppercase border ${
-                          job.category === "Government"
-                            ? "bg-amber-50 text-amber-600 border-amber-100"
-                            : "bg-indigo-50 text-indigo-600 border-indigo-100"
-                        }`}>
-                          {job.category}
-                        </span>
-                        <span className="font-mono text-xs text-slate-500 font-bold tracking-wider">
-                          {job.organization}
-                        </span>
+              <div className="flex flex-col gap-8 w-full animate-fadeIn" id="jobs-page-bento-layout">
+                {/* 2-Column Bento Layout */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                  
+                  {/* Left Column: Job Alerts (col-span-8) */}
+                  <div className="lg:col-span-8 flex flex-col gap-4">
+                    {filteredJobs.length > 0 ? (
+                      filteredJobs.map((job) => (
+                        <div
+                          key={job.id}
+                          id={`job-card-${job.id}`}
+                          className="w-full bg-white border border-[#004aad] rounded-lg shadow-sm hover:shadow-md hover:border-2 transition-all p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 cursor-pointer group text-left"
+                          onClick={() => setActiveJobModal(job)}
+                        >
+                          <div className="flex flex-col">
+                            <div className="flex items-center gap-2.5 mb-1.5 flex-wrap">
+                              <span className={`font-bold text-[10px] md:text-xs px-2.5 py-0.5 rounded-full tracking-wider uppercase border ${
+                                job.category === "Government"
+                                  ? "bg-amber-50 text-amber-600 border-amber-100"
+                                  : "bg-indigo-50 text-indigo-600 border-indigo-100"
+                              }`}>
+                                {job.category}
+                              </span>
+                              <span className="font-mono text-xs text-slate-500 font-bold tracking-wider">
+                                {job.organization}
+                              </span>
+                            </div>
+                            <h3 className="text-base md:text-lg font-bold text-slate-900 group-hover:text-[#004aad] transition-colors leading-snug">
+                              {job.title}
+                            </h3>
+                            <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs text-slate-500">
+                              <span className="flex items-center gap-1">
+                                <Briefcase size={12} className="text-[#004aad]" />
+                                {job.postName}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <Users size={12} className="text-[#004aad]" />
+                                {job.vacancies}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <GraduationCap size={12} className="text-[#004aad]" />
+                                {job.qualification}
+                              </span>
+                              <span className="flex items-center gap-1 text-red-600 font-semibold">
+                                <Clock size={12} />
+                                Last Date: {job.lastDate}
+                              </span>
+                            </div>
+                          </div>
+                          <button className="self-end md:self-auto bg-[#004aad]/10 text-[#004aad] group-hover:bg-[#004aad] group-hover:text-white px-5 py-2 rounded-lg font-bold text-xs md:text-sm tracking-wide transition-all flex items-center gap-2 whitespace-nowrap">
+                            View Details <ArrowRight size={14} />
+                          </button>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-12 bg-white border border-[#004aad]/20 rounded-lg">
+                        <p className="text-slate-500 font-medium">No job alerts matched your search.</p>
+                        <button onClick={() => setSearchQuery("")} className="mt-2 text-[#004aad] font-bold underline cursor-pointer">Clear filter</button>
                       </div>
-                      <h3 className="text-base md:text-lg font-bold text-slate-900 group-hover:text-[#004aad] transition-colors leading-snug">
-                        {job.title}
-                      </h3>
-                      <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs text-slate-500">
-                        <span className="flex items-center gap-1">
-                          <Briefcase size={12} className="text-[#004aad]" />
-                          {job.postName}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Users size={12} className="text-[#004aad]" />
-                          {job.vacancies}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <GraduationCap size={12} className="text-[#004aad]" />
-                          {job.qualification}
-                        </span>
-                        <span className="flex items-center gap-1 text-red-600 font-semibold">
-                          <Clock size={12} />
-                          Last Date: {job.lastDate}
-                        </span>
+                    )}
+                  </div>
+
+                  {/* Right Column: Bento Right Sidebar widgets */}
+                  <aside className="lg:col-span-4 flex flex-col gap-6" id="bento-right-sidebar">
+                    
+                    {/* Widget A: Upcoming Exam Calendar */}
+                    <div className="bg-white border border-[#004aad] rounded-lg shadow-sm hover:shadow-md hover:border-2 transition-all p-5 flex flex-col justify-between text-left" id="widget-upcoming-exams">
+                      <div>
+                        <div className="flex items-center gap-2 px-3 py-2.5 mb-4 bg-[#004aad] text-white rounded-lg shadow-sm">
+                          <Calendar size={18} className="text-white shrink-0" />
+                          <h4 className="text-sm font-black uppercase tracking-wider text-white">
+                            Upcoming Exam Calendar
+                          </h4>
+                        </div>
+                        <div className="space-y-3">
+                          {upcomingExams.slice(0, 3).map((exam) => (
+                            <div 
+                              key={exam.id} 
+                              onClick={() => { setActiveExamModal(exam); }}
+                              className="group/item cursor-pointer text-left p-3 rounded-lg bg-slate-50 hover:bg-indigo-50/50 border border-[#004aad]/30 hover:border-[#004aad] transition-all shadow-2xs"
+                            >
+                              <div className="flex items-center justify-between gap-1">
+                                <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wider bg-amber-50 px-1.5 py-0.5 rounded font-mono">
+                                  {exam.category}
+                                </span>
+                                <span className="text-[9px] text-slate-400 font-mono font-bold">
+                                  {exam.code}
+                                </span>
+                              </div>
+                              <p className="text-[11px] font-bold text-slate-700 mt-1 leading-tight group-hover/item:text-[#004aad] transition-colors line-clamp-1">
+                                {exam.title}
+                              </p>
+                              <p className="text-[9px] text-slate-400 mt-0.5 flex items-center gap-1 font-mono">
+                                <Clock size={10} /> Date: {exam.date}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setCurrentPage("exams");
+                          window.scrollTo({ top: 0, behavior: "smooth" });
+                        }}
+                        className="mt-4 w-full bg-[#004aad]/10 hover:bg-[#004aad] text-[#004aad] hover:text-white font-bold text-xs py-2.5 rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                      >
+                        More Exams <ArrowRight size={12} />
+                      </button>
+                    </div>
+
+                    {/* Widget B: Latest Declared Results */}
+                    <div className="bg-white border border-[#004aad] rounded-lg shadow-sm hover:shadow-md hover:border-2 transition-all p-5 flex flex-col justify-between text-left" id="widget-declared-results">
+                      <div>
+                        <div className="flex items-center gap-2 px-3 py-2.5 mb-4 bg-[#004aad] text-white rounded-lg shadow-sm">
+                          <Award size={18} className="text-white shrink-0" />
+                          <h4 className="text-sm font-black uppercase tracking-wider text-white">
+                            Latest Declared Results
+                          </h4>
+                        </div>
+                        <div className="space-y-3">
+                          {[
+                            { id: "res-1", title: "MPSC State Services (Rajyaseva) Prelims Answer Key 2026", type: "Answer Key", status: "Active Key Release" },
+                            { id: "res-2", title: "Maharashtra Police Bharti Physical Screening Selection List", type: "Physical List", status: "Merit PDF Live" },
+                            { id: "res-3", title: "SSC CGL Exam Tier-I Final Scorecard & Cut-off Marks", type: "Scorecard", status: "Cut-off Declared" }
+                          ].map((result) => (
+                            <div 
+                              key={result.id}
+                              onClick={() => {
+                                setCurrentPage("exams");
+                                setExamFilter("all");
+                                window.scrollTo({ top: 0, behavior: "smooth" });
+                              }}
+                              className="group/item cursor-pointer text-left p-3 rounded-lg bg-slate-50 hover:bg-indigo-50/50 border border-[#004aad]/30 hover:border-[#004aad] transition-all shadow-2xs"
+                            >
+                              <div className="flex items-center justify-between gap-1">
+                                <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider bg-emerald-50 px-1.5 py-0.5 rounded font-mono">
+                                  {result.type}
+                                </span>
+                                <span className="text-[9px] text-emerald-500 font-mono font-bold uppercase tracking-wider">
+                                  ✓ LIVE
+                                </span>
+                              </div>
+                              <p className="text-[11px] font-bold text-slate-700 mt-1 leading-tight group-hover/item:text-[#004aad] transition-colors line-clamp-1">
+                                {result.title}
+                              </p>
+                              <p className="text-[9px] text-slate-400 mt-0.5 font-mono">
+                                Status: {result.status}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setCurrentPage("exams");
+                          setExamFilter("all");
+                          window.scrollTo({ top: 0, behavior: "smooth" });
+                        }}
+                        className="mt-4 w-full bg-[#004aad]/10 hover:bg-[#004aad] text-[#004aad] hover:text-white font-bold text-xs py-2.5 rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                      >
+                        View Results <ArrowRight size={12} />
+                      </button>
+                    </div>
+
+                    {/* Widget C: Recommended Mock Tests */}
+                    <div className="bg-white border border-[#004aad] rounded-lg shadow-sm hover:shadow-md hover:border-2 transition-all p-5 flex flex-col justify-between text-left" id="widget-mock-tests">
+                      <div>
+                        <div className="flex items-center gap-2 px-3 py-2.5 mb-4 bg-[#004aad] text-white rounded-lg shadow-sm">
+                          <Trophy size={18} className="text-white shrink-0" />
+                          <h4 className="text-sm font-black uppercase tracking-wider text-white">
+                            Recommended Mock Tests
+                          </h4>
+                        </div>
+                        <div className="space-y-3">
+                          {mockTests.slice(0, 3).map((test) => (
+                            <div 
+                              key={test.id} 
+                              onClick={() => { setActiveTestModal(test); }}
+                              className="group/item cursor-pointer text-left p-3 rounded-lg bg-slate-50 hover:bg-indigo-50/50 border border-[#004aad]/30 hover:border-[#004aad] transition-all shadow-2xs"
+                            >
+                              <div className="flex items-center justify-between gap-1">
+                                <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider bg-indigo-50 px-1.5 py-0.5 rounded font-mono">
+                                  {test.category}
+                                </span>
+                                <span className="text-[9px] text-slate-400 font-mono font-bold">
+                                  {test.durationMinutes} Mins
+                                </span>
+                              </div>
+                              <p className="text-[11px] font-bold text-slate-700 mt-1 leading-tight group-hover/item:text-[#004aad] transition-colors line-clamp-1">
+                                {test.title}
+                              </p>
+                              <p className="text-[9px] text-slate-400 mt-0.5 font-mono">
+                                Total Questions: {test.questions.length} Qs
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setCurrentPage("mock");
+                          window.scrollTo({ top: 0, behavior: "smooth" });
+                        }}
+                        className="mt-4 w-full bg-[#004aad]/10 hover:bg-[#004aad] text-[#004aad] hover:text-white font-bold text-xs py-2.5 rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                      >
+                        Take Mock <ArrowRight size={12} />
+                      </button>
+                    </div>
+
+                    {/* Widget D: PYQ PDF Vault */}
+                    <div className="bg-white border border-[#004aad] rounded-lg shadow-sm hover:shadow-md hover:border-2 transition-all p-5 flex flex-col justify-between text-left" id="widget-pdf-vault">
+                      <div>
+                        <div className="flex items-center gap-2 px-3 py-2.5 mb-4 bg-[#004aad] text-white rounded-lg shadow-sm">
+                          <BookOpen size={18} className="text-white shrink-0" />
+                          <h4 className="text-sm font-black uppercase tracking-wider text-white">
+                            PYQ PDF Vault
+                          </h4>
+                        </div>
+                        <div className="space-y-3">
+                          {paperPdfs.slice(0, 3).map((pdf) => (
+                            <div 
+                              key={pdf.id} 
+                              onClick={() => { setActivePdfModal(pdf); }}
+                              className="group/item cursor-pointer text-left p-3 rounded-lg bg-slate-50 hover:bg-indigo-50/50 border border-[#004aad]/30 hover:border-[#004aad] transition-all shadow-2xs"
+                            >
+                              <div className="flex items-center justify-between gap-1">
+                                <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider bg-slate-100 px-1.5 py-0.5 rounded font-mono">
+                                  {pdf.category}
+                                </span>
+                                <span className="text-[9px] text-slate-400 font-mono font-bold">
+                                  {pdf.fileSize}
+                                </span>
+                              </div>
+                              <p className="text-[11px] font-bold text-slate-700 mt-1 leading-tight group-hover/item:text-[#004aad] transition-colors line-clamp-1">
+                                {pdf.title}
+                              </p>
+                              <p className="text-[9px] text-slate-400 mt-0.5 font-mono">
+                                Subject: {pdf.subject} | Year: {pdf.year}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setCurrentPage("pdf");
+                          window.scrollTo({ top: 0, behavior: "smooth" });
+                        }}
+                        className="mt-4 w-full bg-[#004aad]/10 hover:bg-[#004aad] text-[#004aad] hover:text-white font-bold text-xs py-2.5 rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                      >
+                        Get PDF Guides <ArrowRight size={12} />
+                      </button>
+                    </div>
+
+                  </aside>
+                </div>
+
+                {/* Full-width Grounding About & Collaboration Section */}
+                <section className="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 border border-indigo-500/20 rounded-2xl p-6 md:p-10 text-white mt-4 shadow-xl text-left" id="jobs-grounding-about-section">
+                  <div className="max-w-5xl">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 font-mono mb-4">
+                      🌐 Official Portal Overview & Grounding
+                    </span>
+                    <h2 className="text-xl md:text-3xl font-extrabold text-white tracking-tight leading-tight mb-4">
+                      MaziExam: Your Ultimate Gateway to Selection in Government & Private Sectors
+                    </h2>
+                    <p className="text-slate-300 text-xs md:text-sm leading-relaxed mb-6">
+                      MaziExam Portal is Maharashtra's premier career guidance and competitive examination learning ecosystem. We curate, verify, and deliver real-time news alerts on state notifications, sarkari recruitments, central syllabus timelines, and private placement opportunities. Our unified portal keeps competitive aspirants equipped with direct links, syllabus updates, and eligibility checklists to accelerate their preparation.
+                    </p>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 border-t border-indigo-500/10 pt-6">
+                      {/* Sub-section A */}
+                      <div>
+                        <h3 className="text-base font-bold text-amber-400 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+                          ⭐ How We Secure Your Selection
+                        </h3>
+                        <p className="text-slate-300 text-xs leading-relaxed">
+                          We believe that regular test practice combined with active awareness is key to competitive success. MaziExam delivers the perfect dual advantage:
+                        </p>
+                        <ul className="mt-3 space-y-2 text-xs text-slate-300">
+                          <li className="flex items-start gap-2">
+                            <span className="text-amber-400 font-bold mt-0.5">✓</span>
+                            <span><strong>Live Sarkari Alerts & "majhi naukri" notifications:</strong> Real-time indexing of all central and state vacancy boards (Police Bharti, MPSC, UPSC, Banking, SSC, Railway) so you never miss an application deadline.</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <span className="text-amber-400 font-bold mt-0.5">✓</span>
+                            <span><strong>Premium High-Fidelity Mock Tests:</strong> Built-in interactive exam simulators styled to match standard national testing rules, featuring immediate feedback, explanation desks, and timing tracking.</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <span className="text-amber-400 font-bold mt-0.5">✓</span>
+                            <span><strong>PYQ Solved Archives:</strong> Verified previous year paper PDFs with key explanations available for secure download to assist your comprehensive <strong>online preparation</strong>.</span>
+                          </li>
+                        </ul>
+                      </div>
+
+                      {/* Sub-section B */}
+                      <div>
+                        <h3 className="text-base font-bold text-amber-400 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+                          🤝 Advertise & Partner with MaziExam
+                        </h3>
+                        <p className="text-slate-300 text-xs leading-relaxed">
+                          We collaborate actively with external education publishers, private institutions, tutoring academies, and recruiters to broadcast critical placement news:
+                        </p>
+                        <ul className="mt-3 space-y-2 text-xs text-slate-300">
+                          <li className="flex items-start gap-2">
+                            <span className="text-indigo-400 font-bold mt-0.5">■</span>
+                            <span><strong>Collaborative Advertising:</strong> Partner with us to run banner promotions, vacancy alerts, or sponsored preparation materials targeted at over 50,000 active students in Maharashtra.</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <span className="text-indigo-400 font-bold mt-0.5">■</span>
+                            <span><strong>Private Recruitment Integration:</strong> Private parties and local enterprises can list job placements and remote workspace opportunities directly to find qualified candidates.</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <span className="text-indigo-400 font-bold mt-0.5">■</span>
+                            <span><strong>Coaching Academy Tie-Ups:</strong> Co-brand state-wide test series and distribute specialized preparation resources using our high-throughput secure content delivery pipelines.</span>
+                          </li>
+                        </ul>
+                        <p className="text-[10px] text-slate-400 italic mt-3.5 leading-normal">
+                          To submit an advertising proposal, navigate to our <button onClick={() => { setCurrentPage("contact"); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="text-indigo-300 hover:underline cursor-pointer font-bold font-sans">Contact Desk</button> and choose "Business Collaborations" as the inquiry topic.
+                        </p>
                       </div>
                     </div>
-                    <button className="self-end md:self-auto bg-[#004aad]/10 text-[#004aad] group-hover:bg-[#004aad] group-hover:text-white px-5 py-2 rounded-lg font-bold text-xs md:text-sm tracking-wide transition-all flex items-center gap-2">
-                      View Details <ArrowRight size={14} />
-                    </button>
                   </div>
-                ))
-              ) : (
-                <div className="text-center py-12 bg-white border border-[#004aad]/20 rounded-lg">
-                  <p className="text-slate-500 font-medium">No job alerts matched your search.</p>
-                  <button onClick={() => setSearchQuery("")} className="mt-2 text-[#004aad] font-bold underline">Clear filter</button>
-                </div>
-              )
+                </section>
+              </div>
             ) : currentPage === "exams" ? (
               // Upcoming exams list
               filteredExams.length > 0 ? (
