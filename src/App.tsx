@@ -31,7 +31,8 @@ import {
   CreditCard,
   ShieldAlert,
   Bell,
-  BellOff
+  BellOff,
+  Linkedin
 } from "lucide-react";
 import { 
   upcomingExams, 
@@ -2924,6 +2925,44 @@ export default function App() {
                       </div>
                     </div>
                   </div>
+                </div>
+
+                {/* Designer and Developer Credit */}
+                <div className="border border-slate-200/80 rounded-2xl p-6 bg-gradient-to-r from-slate-50/70 via-indigo-50/10 to-slate-50/70 flex flex-col sm:flex-row items-center justify-between gap-5 mt-4 shadow-sm" id="about-developer-credit">
+                  <div className="flex items-center gap-4 text-left">
+                    <div className="relative w-14 h-14 rounded-full p-0.5 bg-gradient-to-tr from-[#004aad] via-indigo-500 to-amber-500 shadow-md shrink-0">
+                      <img
+                        src="https://isxhcatn0reqvwnv.public.blob.vercel-storage.com/1777363600388.jpg"
+                        alt="Prathamesh Chaware"
+                        className="w-full h-full rounded-full object-cover bg-white"
+                        referrerPolicy="no-referrer"
+                      />
+                      <div className="absolute -bottom-1 -right-1 bg-amber-500 text-white rounded-full p-1 shadow-2xs border border-white flex items-center justify-center">
+                        <Sparkles size={10} className="animate-pulse" />
+                      </div>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-slate-900 font-sans tracking-tight">
+                        {t("Designed & Developed By")}
+                      </h4>
+                      <p className="text-xs text-slate-600 mt-1.5 flex flex-wrap items-center gap-1.5 leading-relaxed">
+                        <span>{t("This page was customized and styled with precision by")}</span>
+                        <span className="font-extrabold text-[#004aad] bg-[#004aad]/10 px-2.5 py-0.5 rounded-lg border border-[#004aad]/20 inline-block shadow-3xs hover:bg-[#004aad]/15 transition-all">
+                          {t("Prathamesh Chaware")}
+                        </span>
+                      </p>
+                    </div>
+                  </div>
+                  <a
+                    href="https://linkedin.com/prathamesh-chaware/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 bg-[#0077b5] hover:bg-[#0077b5]/90 text-white font-bold text-xs px-5 py-2.5 rounded-xl transition-all shadow-sm uppercase tracking-wider cursor-pointer whitespace-nowrap"
+                    id="about-developer-linkedin-btn"
+                  >
+                    <Linkedin size={14} />
+                    {t("LinkedIn Profile")}
+                  </a>
                 </div>
 
                 <div className="border-t border-slate-100 pt-6 text-center">

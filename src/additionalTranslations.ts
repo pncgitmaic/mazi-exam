@@ -187,7 +187,13 @@ export const additionalTranslations: Record<"en" | "hi" | "mr", Record<string, s
     "450 Posts": "450 पद",
     "₹5.0 LPA - ₹8.0 LPA": "₹5.0 लाख - ₹8.0 लाख प्रति वर्ष",
     "B.Tech in Computer Science, Information Technology, or Telecommunications.": "कंप्यूटर विज्ञान, सूचना प्रौद्योगिकी, या दूरसंचार में बी.टेक।",
-    "Join the largest telecom network operator in India. Jio is hiring software and networking graduates to work on high-capacity cloud infrastructures, 5G core optimization, and enterprise solutions.": "भारत के सबसे बड़े टेलीकॉम नेटवर्क ऑपरेटर से जुड़ें। जियो सॉफ्टवेयर और नेटवर्किंग स्नातकों को उच्च क्षमता वाले क्लाउड इन्फ्रास्ट्रक्चर, 5G कोर ऑप्टिमाइज़ेशन और एंटरप्राइज़ समाधानों पर काम करने के लिए काम पर रख रहा है।"
+    "Join the largest telecom network operator in India. Jio is hiring software and networking graduates to work on high-capacity cloud infrastructures, 5G core optimization, and enterprise solutions.": "भारत के सबसे बड़े टेलीकॉम नेटवर्क ऑपरेटर से जुड़ें। जियो सॉफ्टवेयर और नेटवर्किंग स्नातकों को उच्च क्षमता वाले क्लाउड इन्फ्रास्ट्रक्चर, 5G कोर ऑप्टिमाइज़ेशन और एंटरप्राइज़ समाधानों पर काम करने के लिए काम पर रख रहा है।",
+
+    // Developer Credit
+    "Designed & Developed By": "डिज़ाइन और विकास",
+    "This page was customized and styled with precision by": "यह पेज सटीकता के साथ डिज़ाइन और विकसित किया गया है द्वारा",
+    "Prathamesh Chaware": "प्रथमेश चवारे",
+    "LinkedIn Profile": "लिंक्डइन प्रोफाइल"
   },
   mr: {
     // Upcoming Exams
@@ -376,6 +382,12 @@ export const additionalTranslations: Record<"en" | "hi" | "mr", Record<string, s
     "450 Posts": "४५० जागा",
     "₹5.0 LPA - ₹8.0 LPA": "₹५.० लाख - ₹८.० लाख प्रति वर्ष",
     "B.Tech in Computer Science, Information Technology, or Telecommunications.": "कॉम्प्युटर सायन्स, इन्फॉर्मेशन टेक्नॉलॉजी किंवा टेलिकम्युनिकेशनमध्ये बी.टेक.",
-    "Join the largest telecom network operator in India. Jio is hiring software and networking graduates to work on high-capacity cloud infrastructures, 5G core optimization, and enterprise solutions.": "भारतातील सर्वात मोठ्या टेलिकॉम नेटवर्क ऑपरेटरमध्ये सामील व्हा. जिओ हाय-कॅपॅसिटी क्लाउड इन्फ्रास्ट्रक्चर, 5G कोअर ऑप्टिमायझेशन आणि एंटरप्राइझ सोल्यूशन्सवर काम करण्यासाठी सॉफ्टवेअर आणि नेटवर्किंग पदवीधरांची भरती करत आहे."
+    "Join the largest telecom network operator in India. Jio is hiring software and networking graduates to work on high-capacity cloud infrastructures, 5G core optimization, and enterprise solutions.": "भारतातील सर्वात मोठ्या टेलिकॉम नेटवर्क ऑपरेटरमध्ये सामील व्हा. जिओ हाय-कॅपॅसिटी क्लाउड इन्फ्रास्ट्रक्चर, 5G कोअर ऑप्टिमायझेशन आणि एंटरप्राइझ सोल्यूशन्सवर काम करण्यासाठी सॉफ्टवेअर आणि नेटवर्किंग पदवीधरांची भरती करत आहे.",
+
+    // Developer Credit
+    "Designed & Developed By": "डिझाईन आणि विकसित",
+    "This page was customized and styled with precision by": "हे पृष्ठ अचूकतेने डिझाइन आणि विकसित केले आहे",
+    "Prathamesh Chaware": "प्रथमेश चवारे",
+    "LinkedIn Profile": "लिंक्डइन प्रोफाइल"
   }
 };
