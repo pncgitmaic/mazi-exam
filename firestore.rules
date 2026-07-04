@@ -69,7 +69,6 @@ service cloud.firestore {
     }
 
     match /test_attempts/{attemptId} {
-      // Secure listing constraint
       allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
       allow get: if isSignedIn() && resource.data.userId == request.auth.uid;
       
@@ -79,6 +78,54 @@ service cloud.firestore {
         && request.resource.data.userId == request.auth.uid;
         
       allow update, delete: if false; // Attempts are immutable
+    }
+
+    // USER PROFILES SCHEMA AND VAL
+    function isValidProfile(data) {
+      return data.keys().hasAll(['userId', 'fullName', 'phoneNumber', 'state', 'examPreference', 'notificationsActive'])
+        && data.keys().size() == 6
+        && data.userId is string
+        && data.userId.size() <= 128
+        && data.fullName is string
+        && data.fullName.size() <= 100
+        && data.phoneNumber is string
+        && data.phoneNumber.size() <= 20
+        && data.state is string
+        && data.state.size() <= 50
+        && data.examPreference is string
+        && data.examPreference.size() <= 100
+        && data.notificationsActive is bool;
+    }
+
+    match /user_profiles/{userId} {
+      allow read: if isOwner(userId);
+      
+      allow create, update: if isOwner(userId)
+        && isValidId(userId)
+        && isValidProfile(request.resource.data)
+        && request.resource.data.userId == request.auth.uid;
+    }
+
+    // CLASSROOM LEADS SCHEMA AND VAL
+    function isValidClassroomLead(data) {
+      return data.keys().hasAll(['fullName', 'email', 'phoneNumber', 'preferredBatch', 'timestamp'])
+        && data.keys().size() == 5
+        && data.fullName is string
+        && data.fullName.size() <= 100
+        && data.email is string
+        && data.email.size() <= 100
+        && data.phoneNumber is string
+        && data.phoneNumber.size() <= 20
+        && data.preferredBatch is string
+        && data.preferredBatch.size() <= 100
+        && data.timestamp is int;
+    }
+
+    match /classroom_leads/{leadId} {
+      allow create: if isValidId(leadId)
+        && isValidClassroomLead(request.resource.data);
+      
+      allow read, update, delete: if false; // Admin console access only
     }
   }
 }

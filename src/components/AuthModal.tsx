@@ -19,6 +19,7 @@ import {
   createUserWithEmailAndPassword, 
   signOut, 
   updateProfile,
+  sendPasswordResetEmail,
   OperationType,
   handleFirestoreError
 } from "../firebase";
@@ -31,7 +32,7 @@ interface AuthModalProps {
 }
 
 export function AuthModal({ isOpen, onClose, currentUser }: AuthModalProps) {
-  const [tab, setTab] = useState<"signin" | "register">("signin");
+  const [tab, setTab] = useState<"signin" | "register" | "forgot">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -146,6 +147,32 @@ export function AuthModal({ isOpen, onClose, currentUser }: AuthModalProps) {
         setError("Password is too weak. Please choose a stronger password.");
       } else {
         setError(err.message || "An error occurred during registration.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) {
+      setError("Please enter your email address.");
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    setSuccessMsg(null);
+    try {
+      await sendPasswordResetEmail(auth, email);
+      setSuccessMsg("Password reset email sent! Please check your inbox.");
+    } catch (err: any) {
+      console.error("Forgot password error:", err);
+      if (err.code === "auth/user-not-found") {
+        setError("No account found with this email address.");
+      } else if (err.code === "auth/invalid-email") {
+        setError("Please enter a valid email address.");
+      } else {
+        setError(err.message || "Failed to send password reset email.");
       }
     } finally {
       setLoading(false);
@@ -343,6 +370,16 @@ export function AuthModal({ isOpen, onClose, currentUser }: AuthModalProps) {
                         required
                       />
                     </div>
+                    <div className="flex justify-end pt-1">
+                      <button
+                        type="button"
+                        onClick={() => setTab("forgot")}
+                        className="text-xs font-bold text-[#004aad] hover:underline cursor-pointer"
+                        id="signin-forgot-password-link"
+                      >
+                        Forgot Password?
+                      </button>
+                    </div>
                   </div>
 
                   <button
@@ -357,6 +394,53 @@ export function AuthModal({ isOpen, onClose, currentUser }: AuthModalProps) {
                       <span>Sign In</span>
                     )}
                   </button>
+                </form>
+              ) : tab === "forgot" ? (
+                /* FORGOT PASSWORD FORM */
+                <form onSubmit={handleForgotPassword} className="space-y-4" id="forgot-password-form">
+                  <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl text-xs text-gray-600 leading-relaxed">
+                    Enter your email address below and we will send you a password recovery link to securely reset your credentials.
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block">Email Address</label>
+                    <div className="relative">
+                      <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                      <input 
+                        type="email"
+                        placeholder="you@example.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="w-full pl-11 pr-4 py-2.5 border border-gray-200 rounded-xl focus:border-[#004aad] focus:ring-1 focus:ring-[#004aad] outline-none text-sm transition-all font-medium text-gray-800"
+                        id="forgot-email-input"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full py-3 bg-[#004aad] hover:bg-[#003d91] active:scale-[0.99] text-white font-bold rounded-xl transition-all shadow-md shadow-[#004aad]/10 hover:shadow-[#004aad]/20 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                    id="forgot-submit-btn"
+                  >
+                    {loading ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <span>Send Reset Email</span>
+                    )}
+                  </button>
+
+                  <div className="text-center pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setTab("signin")}
+                      className="text-xs font-bold text-[#004aad] hover:underline cursor-pointer"
+                      id="back-to-signin"
+                    >
+                      Back to Sign In
+                    </button>
+                  </div>
                 </form>
               ) : (
                 /* REGISTER FORM */

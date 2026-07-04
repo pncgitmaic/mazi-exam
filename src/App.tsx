@@ -29,7 +29,9 @@ import {
   Lock,
   Unlock,
   CreditCard,
-  ShieldAlert
+  ShieldAlert,
+  Bell,
+  BellOff
 } from "lucide-react";
 import { 
   upcomingExams, 
@@ -43,7 +45,7 @@ import {
   premiumPacks,
   PremiumExamPack
 } from "./data";
-import { auth, db, onAuthStateChanged, collection, addDoc, doc, getDoc, setDoc, User as FirebaseUser, OperationType, handleFirestoreError } from "./firebase";
+import { auth, db, onAuthStateChanged, collection, addDoc, doc, getDoc, setDoc, getDocs, query, where, orderBy, updateProfile, sendPasswordResetEmail, User as FirebaseUser, OperationType, handleFirestoreError } from "./firebase";
 import { AuthModal } from "./components/AuthModal";
 import { GauriChatBot } from "./components/GauriChatBot";
 
@@ -669,7 +671,40 @@ export default function App() {
   };
 
   // Navigation State
-  const [currentPage, setCurrentPage] = useState<"jobs" | "exams" | "pdf" | "mock" | "selection" | "about" | "contact" | "terms" | "privacy" | "sitemap">("jobs");
+  const [currentPage, setCurrentPage] = useState<
+    "jobs" | "exams" | "pdf" | "mock" | "selection" | "about" | "contact" | "terms" | "privacy" | "sitemap" | "results" | "classes" | "dashboard" | "job-detail" | "mock-detail" | "pdf-detail"
+  >("jobs");
+  
+  // Selected detail items
+  const [selectedJob, setSelectedJob] = useState<JobAlert | null>(null);
+  const [selectedMock, setSelectedMock] = useState<MockTest | null>(null);
+  const [selectedPdf, setSelectedPdf] = useState<PaperPdf | null>(null);
+
+  // Job Notification Toggle state (bell indicator)
+  const [notificationsActive, setNotificationsActive] = useState<boolean>(() => {
+    const saved = localStorage.getItem("jobNotificationsActive");
+    return saved === null ? true : saved === "true";
+  });
+
+  // Extended Profile details
+  const [profileFullName, setProfileFullName] = useState("");
+  const [profilePhone, setProfilePhone] = useState("");
+  const [profileState, setProfileState] = useState("");
+  const [profileExamPref, setProfileExamPref] = useState("");
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [profileSavedMsg, setProfileSavedMsg] = useState<string | null>(null);
+
+  // Classroom leads / interest forms state
+  const [classFullName, setClassFullName] = useState("");
+  const [classEmail, setClassEmail] = useState("");
+  const [classPhone, setClassPhone] = useState("");
+  const [classBatch, setClassBatch] = useState("Police Bharti Batch 2026");
+  const [classLoading, setClassLoading] = useState(false);
+  const [classSuccess, setClassSuccess] = useState(false);
+
+  // Mock test solved attempts list for history card
+  const [solvedAttempts, setSolvedAttempts] = useState<any[]>([]);
+  const [loadingAttempts, setLoadingAttempts] = useState(false);
   
   // Auth state
   const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
@@ -709,6 +744,82 @@ export default function App() {
     });
     return () => unsubscribe();
   }, []);
+
+  // Fetch extended user profile details and solved test attempts on login/logout
+  useEffect(() => {
+    if (currentUser) {
+      // 1. Fetch user profile
+      const profRef = doc(db, "user_profiles", currentUser.uid);
+      getDoc(profRef)
+        .then((docSnap) => {
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            setProfileFullName(data.fullName || currentUser.displayName || "");
+            setProfilePhone(data.phoneNumber || "");
+            setProfileState(data.state || "");
+            setProfileExamPref(data.examPreference || "");
+            if (data.notificationsActive !== undefined) {
+              setNotificationsActive(data.notificationsActive);
+              localStorage.setItem("jobNotificationsActive", String(data.notificationsActive));
+            }
+          } else {
+            // First time login - auto-populate default profile & sync default notification toggle
+            const defaultName = currentUser.displayName || "";
+            setProfileFullName(defaultName);
+            setDoc(profRef, {
+              userId: currentUser.uid,
+              fullName: defaultName,
+              phoneNumber: "",
+              state: "",
+              examPreference: "",
+              notificationsActive: notificationsActive
+            }).catch(e => console.error("Error initializing user profile:", e));
+          }
+        })
+        .catch(e => console.error("Error reading profile:", e));
+
+      // 2. Fetch test attempts
+      setLoadingAttempts(true);
+      const attemptsQuery = query(
+        collection(db, "test_attempts"),
+        where("userId", "==", currentUser.uid),
+        orderBy("timestamp", "desc")
+      );
+      getDocs(attemptsQuery)
+        .then((querySnapshot) => {
+          const list: any[] = [];
+          querySnapshot.forEach((doc) => {
+            list.push({ id: doc.id, ...doc.data() });
+          });
+          setSolvedAttempts(list);
+        })
+        .catch((err) => {
+          console.error("Error fetching solved attempts:", err);
+          // Fallback if index isn't ready or other error
+          const basicQuery = query(
+            collection(db, "test_attempts"),
+            where("userId", "==", currentUser.uid)
+          );
+          getDocs(basicQuery).then(snap => {
+            const list: any[] = [];
+            snap.forEach((doc) => {
+              list.push({ id: doc.id, ...doc.data() });
+            });
+            list.sort((a, b) => b.timestamp - a.timestamp);
+            setSolvedAttempts(list);
+          }).catch(e => console.error("Fallback fetch attempts error:", e));
+        })
+        .finally(() => {
+          setLoadingAttempts(false);
+        });
+    } else {
+      setProfileFullName("");
+      setProfilePhone("");
+      setProfileState("");
+      setProfileExamPref("");
+      setSolvedAttempts([]);
+    }
+  }, [currentUser]);
 
   // Dynamic SEO Page Title, Meta Description, Keywords & JSON-LD GEO Schema Manager
   useEffect(() => {
@@ -1189,10 +1300,107 @@ export default function App() {
           timestamp: Date.now()
         });
         console.log("Mock test saved to cloud successfully!");
+        
+        // Refresh local solved attempts list
+        setSolvedAttempts((prev) => [
+          {
+            userId: currentUser.uid,
+            testId: activeTestModal.id,
+            testTitle: activeTestModal.title,
+            score: score,
+            totalQuestions: activeTestModal.questions.length,
+            timestamp: Date.now()
+          },
+          ...prev
+        ]);
       } catch (err) {
         console.error("Error saving mock test results:", err);
         handleFirestoreError(err, OperationType.CREATE, "test_attempts");
       }
+    }
+  };
+
+  // Toggle job notification bell preference and sync with cloud profile
+  const handleToggleNotifications = async () => {
+    const nextVal = !notificationsActive;
+    setNotificationsActive(nextVal);
+    localStorage.setItem("jobNotificationsActive", String(nextVal));
+    
+    if (currentUser) {
+      try {
+        const docRef = doc(db, "user_profiles", currentUser.uid);
+        await setDoc(docRef, {
+          userId: currentUser.uid,
+          fullName: profileFullName || currentUser.displayName || "Aspirant",
+          phoneNumber: profilePhone,
+          state: profileState,
+          examPreference: profileExamPref,
+          notificationsActive: nextVal
+        }, { merge: true });
+        console.log("Notification preference synced to cloud!");
+      } catch (err) {
+        console.error("Error saving notification state to Firestore:", err);
+      }
+    }
+  };
+
+  // Save profile extended details in user_profiles collection
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentUser) return;
+    setProfileLoading(true);
+    setProfileSavedMsg(null);
+    try {
+      // 1. Update Firebase Auth Profile Display Name
+      await updateProfile(currentUser, { displayName: profileFullName });
+      
+      // 2. Save in Firestore Profiles Collection
+      const docRef = doc(db, "user_profiles", currentUser.uid);
+      await setDoc(docRef, {
+        userId: currentUser.uid,
+        fullName: profileFullName,
+        phoneNumber: profilePhone,
+        state: profileState,
+        examPreference: profileExamPref,
+        notificationsActive: notificationsActive
+      });
+      
+      setProfileSavedMsg("Your account profile was successfully updated!");
+      setTimeout(() => setProfileSavedMsg(null), 4000);
+    } catch (err: any) {
+      console.error("Error saving profile details:", err);
+      handleFirestoreError(err, OperationType.WRITE, `user_profiles/${currentUser.uid}`);
+    } finally {
+      setProfileLoading(false);
+    }
+  };
+
+  // Submit student lead interest for upcoming classes
+  const handleClassroomLeadSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!classFullName || !classEmail || !classPhone) {
+      return;
+    }
+    setClassLoading(true);
+    setClassSuccess(false);
+    try {
+      const leadId = "lead_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
+      await setDoc(doc(db, "classroom_leads", leadId), {
+        fullName: classFullName,
+        email: classEmail,
+        phoneNumber: classPhone,
+        preferredBatch: classBatch,
+        timestamp: Date.now()
+      });
+      setClassSuccess(true);
+      setClassFullName("");
+      setClassEmail("");
+      setClassPhone("");
+    } catch (err: any) {
+      console.error("Error submitting classroom lead:", err);
+      handleFirestoreError(err, OperationType.CREATE, `classroom_leads`);
+    } finally {
+      setClassLoading(false);
     }
   };
 
@@ -1309,7 +1517,7 @@ export default function App() {
           </div>
 
           {/* Center: Navigation Links */}
-          <nav className="hidden md:flex items-center gap-6 text-base font-semibold" id="header-nav">
+          <nav className="hidden xl:flex items-center gap-5 text-sm font-semibold" id="header-nav">
             <button
               id="nav-link-jobs"
               onClick={() => { setCurrentPage("jobs"); setSearchQuery(""); }}
@@ -1331,6 +1539,17 @@ export default function App() {
               }`}
             >
               {t("Upcoming Exams")}
+            </button>
+            <button
+              id="nav-link-results"
+              onClick={() => { setCurrentPage("results"); setSearchQuery(""); }}
+              className={`transition-colors py-2 cursor-pointer ${
+                currentPage === "results" 
+                  ? "text-[#004aad] font-bold border-b-2 border-[#004aad]" 
+                  : "text-gray-600 hover:text-[#004aad]"
+              }`}
+            >
+              {t("Results")}
             </button>
             <button
               id="nav-link-mock"
@@ -1355,6 +1574,35 @@ export default function App() {
               {t("Paper PDF")}
             </button>
             <button
+              id="nav-link-classes"
+              onClick={() => { setCurrentPage("classes"); setSearchQuery(""); }}
+              className={`transition-colors py-2 cursor-pointer ${
+                currentPage === "classes" 
+                  ? "text-[#004aad] font-bold border-b-2 border-[#004aad]" 
+                  : "text-gray-600 hover:text-[#004aad]"
+              }`}
+            >
+              {t("Classes")}
+            </button>
+            <button
+              id="nav-link-dashboard"
+              onClick={() => {
+                if (!currentUser) {
+                  setAuthModalOpen(true);
+                } else {
+                  setCurrentPage("dashboard");
+                  setSearchQuery("");
+                }
+              }}
+              className={`transition-colors py-2 cursor-pointer ${
+                currentPage === "dashboard" 
+                  ? "text-[#004aad] font-bold border-b-2 border-[#004aad]" 
+                  : "text-gray-600 hover:text-[#004aad]"
+              }`}
+            >
+              {t("My Dashboard")}
+            </button>
+            <button
               id="nav-link-selection"
               onClick={() => { setCurrentPage("selection"); setSearchQuery(""); }}
               className={`transition-all py-2 cursor-pointer flex items-center gap-1 bg-gradient-to-r from-amber-500 to-yellow-500 text-transparent bg-clip-text hover:brightness-110 font-black border-b-2 ${
@@ -1363,13 +1611,34 @@ export default function App() {
                   : "border-transparent"
               }`}
             >
-              <Star size={16} className="text-amber-500 animate-pulse fill-amber-400" />
+              <Star size={14} className="text-amber-500 animate-pulse fill-amber-400" />
               {t("Get Selection")}
             </button>
           </nav>
 
           {/* Right: User Profile / Sign In */}
           <div className="flex items-center gap-2 md:gap-4" id="header-right-container">
+            {/* Job Alert Notification Toggle */}
+            <button
+              onClick={handleToggleNotifications}
+              className={`p-2 rounded-full border transition-all cursor-pointer relative ${
+                notificationsActive
+                  ? "bg-blue-50 text-[#004aad] border-blue-200 hover:bg-blue-100 shadow-3xs"
+                  : "bg-white text-slate-400 border-slate-200 hover:bg-slate-50"
+              }`}
+              title={notificationsActive ? t("Job Notifications Active") : t("Job Notifications Off")}
+              id="header-notification-bell"
+            >
+              {notificationsActive ? (
+                <Bell size={18} className="animate-bounce" />
+              ) : (
+                <BellOff size={18} />
+              )}
+              {notificationsActive && (
+                <span className="absolute top-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white animate-pulse" />
+              )}
+            </button>
+
             {currentUser && hasPortalPass && (
               <div className="hidden lg:flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-amber-500/10 to-yellow-500/10 border border-amber-400/30 text-amber-600 rounded-full text-xs font-black tracking-wider uppercase animate-pulse">
                 <Sparkles size={12} className="fill-amber-400 text-amber-500" />
@@ -1405,12 +1674,12 @@ export default function App() {
         </div>
 
         {/* Mobile Navigation Row */}
-        <div className="flex md:hidden bg-slate-50 border-t border-gray-100 justify-around py-3 font-semibold text-xs sm:text-sm">
+        <div className="flex md:hidden bg-slate-50 border-t border-gray-100 overflow-x-auto whitespace-nowrap py-3 px-2 gap-1.5 font-semibold text-xs scrollbar-none" id="mobile-navigation-row">
           <button
             id="mobile-nav-jobs"
             onClick={() => { setCurrentPage("jobs"); setSearchQuery(""); }}
-            className={`px-2 py-1 rounded-md transition-colors ${
-              currentPage === "jobs" ? "bg-[#004aad] text-white font-bold" : "text-gray-600"
+            className={`px-3 py-1.5 rounded-md transition-colors shrink-0 ${
+              currentPage === "jobs" ? "bg-[#004aad] text-white font-bold" : "text-gray-600 bg-white border border-slate-100"
             }`}
           >
             {t("Jobs")}
@@ -1418,17 +1687,26 @@ export default function App() {
           <button
             id="mobile-nav-exams"
             onClick={() => { setCurrentPage("exams"); setSearchQuery(""); }}
-            className={`px-2 py-1 rounded-md transition-colors ${
-              currentPage === "exams" ? "bg-[#004aad] text-white font-bold" : "text-gray-600"
+            className={`px-3 py-1.5 rounded-md transition-colors shrink-0 ${
+              currentPage === "exams" ? "bg-[#004aad] text-white font-bold" : "text-gray-600 bg-white border border-slate-100"
             }`}
           >
             {t("Exams")}
           </button>
           <button
+            id="mobile-nav-results"
+            onClick={() => { setCurrentPage("results"); setSearchQuery(""); }}
+            className={`px-3 py-1.5 rounded-md transition-colors shrink-0 ${
+              currentPage === "results" ? "bg-[#004aad] text-white font-bold" : "text-gray-600 bg-white border border-slate-100"
+            }`}
+          >
+            {t("Results")}
+          </button>
+          <button
             id="mobile-nav-mock"
             onClick={() => { setCurrentPage("mock"); setSearchQuery(""); }}
-            className={`px-2 py-1 rounded-md transition-colors ${
-              currentPage === "mock" ? "bg-[#004aad] text-white font-bold" : "text-gray-600"
+            className={`px-3 py-1.5 rounded-md transition-colors shrink-0 ${
+              currentPage === "mock" ? "bg-[#004aad] text-white font-bold" : "text-gray-600 bg-white border border-slate-100"
             }`}
           >
             {t("Mocks")}
@@ -1436,22 +1714,47 @@ export default function App() {
           <button
             id="mobile-nav-pdf"
             onClick={() => { setCurrentPage("pdf"); setSearchQuery(""); }}
-            className={`px-2 py-1 rounded-md transition-colors ${
-              currentPage === "pdf" ? "bg-[#004aad] text-white font-bold" : "text-gray-600"
+            className={`px-3 py-1.5 rounded-md transition-colors shrink-0 ${
+              currentPage === "pdf" ? "bg-[#004aad] text-white font-bold" : "text-gray-600 bg-white border border-slate-100"
             }`}
           >
             {t("PDFs")}
           </button>
           <button
-            id="mobile-nav-selection"
-            onClick={() => { setCurrentPage("selection"); setSearchQuery(""); }}
-            className={`px-2 py-1 rounded-md transition-all flex items-center gap-0.5 font-bold ${
-              currentPage === "selection" 
-                ? "bg-gradient-to-r from-amber-500 to-amber-600 text-white" 
-                : "text-amber-600 hover:bg-amber-50"
+            id="mobile-nav-classes"
+            onClick={() => { setCurrentPage("classes"); setSearchQuery(""); }}
+            className={`px-3 py-1.5 rounded-md transition-colors shrink-0 ${
+              currentPage === "classes" ? "bg-[#004aad] text-white font-bold" : "text-gray-600 bg-white border border-slate-100"
             }`}
           >
-            <Star size={11} className="fill-current" />
+            {t("Classes")}
+          </button>
+          <button
+            id="mobile-nav-dashboard"
+            onClick={() => {
+              if (!currentUser) {
+                setAuthModalOpen(true);
+              } else {
+                setCurrentPage("dashboard");
+                setSearchQuery("");
+              }
+            }}
+            className={`px-3 py-1.5 rounded-md transition-colors shrink-0 ${
+              currentPage === "dashboard" ? "bg-[#004aad] text-white font-bold" : "text-gray-600 bg-white border border-slate-100"
+            }`}
+          >
+            {t("Dashboard")}
+          </button>
+          <button
+            id="mobile-nav-selection"
+            onClick={() => { setCurrentPage("selection"); setSearchQuery(""); }}
+            className={`px-3 py-1.5 rounded-md transition-all shrink-0 flex items-center gap-0.5 font-bold ${
+              currentPage === "selection" 
+                ? "bg-gradient-to-r from-amber-500 to-amber-600 text-white" 
+                : "text-amber-600 bg-amber-50 border border-amber-100"
+            }`}
+          >
+            <Star size={11} className="fill-current animate-pulse text-amber-500" />
             {t("Selection")}
           </button>
         </div>
@@ -1574,36 +1877,40 @@ export default function App() {
         )}
 
         {/* SEARCH BAR (All pages) */}
-        <div className="w-full" id="search-bar-container">
-          <div className="relative w-full">
-            <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-[#004aad] w-5 h-5 pointer-events-none" />
-            <input
-              type="text"
-              id="search-input-field"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={
-                currentPage === "jobs" 
-                  ? t("Search Job Alerts...") 
-                  : currentPage === "exams" 
-                  ? t("Search Exams...") 
-                  : currentPage === "mock" 
-                  ? t("Search Mock Tests...") 
-                  : t("Search Paper PDFs...")
-              }
-              className="w-full h-12 md:h-14 pl-12 pr-6 border-2 border-[#004aad] rounded-full text-center text-base md:text-lg focus:outline-none focus:ring-2 focus:ring-[#004aad]/20 transition-all text-[#004aad] placeholder-[#004aad]/60 font-semibold uppercase tracking-wider"
-            />
-            {searchQuery && (
-              <button 
-                onClick={() => setSearchQuery("")}
-                className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm font-bold bg-gray-100 rounded-full w-6 h-6 flex items-center justify-center transition-all"
-                title="Clear Search"
-              >
-                ×
-              </button>
-            )}
+        {!["dashboard", "job-detail", "mock-detail", "pdf-detail"].includes(currentPage) && (
+          <div className="w-full" id="search-bar-container">
+            <div className="relative w-full">
+              <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-[#004aad] w-5 h-5 pointer-events-none" />
+              <input
+                type="text"
+                id="search-input-field"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={
+                  currentPage === "jobs" 
+                    ? t("Search Job Alerts...") 
+                    : currentPage === "exams" 
+                    ? t("Search Exams...") 
+                    : currentPage === "results"
+                    ? t("Search Declared Results...")
+                    : currentPage === "mock" 
+                    ? t("Search Mock Tests...") 
+                    : t("Search Paper PDFs...")
+                }
+                className="w-full h-12 md:h-14 pl-12 pr-6 border-2 border-[#004aad] rounded-full text-center text-base md:text-lg focus:outline-none focus:ring-2 focus:ring-[#004aad]/20 transition-all text-[#004aad] placeholder-[#004aad]/60 font-semibold uppercase tracking-wider"
+              />
+              {searchQuery && (
+                <button 
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm font-bold bg-gray-100 rounded-full w-6 h-6 flex items-center justify-center transition-all"
+                  title="Clear Search"
+                >
+                  ×
+                </button>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* PAGE 1: JOB ALERTS ONLY - CATEGORY TOGGLES */}
         {currentPage === "jobs" && (
@@ -1783,7 +2090,11 @@ export default function App() {
                           key={job.id}
                           id={`job-card-${job.id}`}
                           className="w-full bg-white border border-[#004aad] rounded-lg shadow-sm hover:shadow-md hover:border-2 transition-all p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 cursor-pointer group text-left"
-                          onClick={() => setActiveJobModal(job)}
+                          onClick={() => {
+                            setSelectedJob(job);
+                            setCurrentPage("job-detail");
+                            window.scrollTo({ top: 0, behavior: "smooth" });
+                          }}
                         >
                           <div className="flex flex-col">
                             <div className="flex items-center gap-2.5 mb-1.5 flex-wrap">
@@ -2169,8 +2480,9 @@ export default function App() {
                             setPaymentModalOpen(true);
                           }
                         } else {
-                          setActivePdfModal(pdf);
-                          setPdfCurrentPage(0);
+                          setSelectedPdf(pdf);
+                          setCurrentPage("pdf-detail");
+                          window.scrollTo({ top: 0, behavior: "smooth" });
                         }
                       }}
                     >
@@ -2258,7 +2570,9 @@ export default function App() {
                             setPaymentModalOpen(true);
                           }
                         } else {
-                          handleStartTest(test);
+                          setSelectedMock(test);
+                          setCurrentPage("mock-detail");
+                          window.scrollTo({ top: 0, behavior: "smooth" });
                         }
                       }}
                     >
@@ -2799,7 +3113,7 @@ export default function App() {
                   <p>MaziExam only reads operational session cookies strictly required for user authentication verification. No retargeting pixels are active.</p>
                 </div>
               </div>
-            ) : (
+            ) : currentPage === "sitemap" ? (
               // SITEMAP PAGE
               <div className="w-full bg-white border border-slate-200 rounded-2xl shadow-md p-6 md:p-10 flex flex-col gap-8 text-left animate-fade-in" id="sitemap-page">
                 <div>
@@ -3404,7 +3718,943 @@ export default function App() {
                   </div>
                 </div>
               </div>
-            )}
+            ) : currentPage === "results" ? (
+              // NEW DEDICATED RESULTS PAGE
+              <div className="w-full bg-white border border-slate-200 rounded-2xl shadow-md p-6 md:p-10 flex flex-col gap-6 text-left animate-fade-in" id="results-page">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-100 pb-5">
+                  <div>
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-blue-100 text-[#004aad] font-mono mb-2">
+                      🏆 {t("Answer Keys & Merit Lists")}
+                    </span>
+                    <h3 className="text-2xl md:text-3xl font-black text-slate-900 uppercase tracking-tight font-sans">
+                      {t("Latest Declared Results")}
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-1">
+                      {t("Verify your scoring parameters with official master answer books and provisional category lists.")}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="text-xs text-slate-500 font-bold uppercase tracking-wider font-mono">
+                      {t("Updated Real-time")}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Results Timeline Layout */}
+                <div className="relative border-l-2 border-blue-100 pl-6 ml-4 space-y-8 py-4">
+                  {[
+                    {
+                      id: "res-1",
+                      title: "MPSC Civil Gazetted Services Prelims 2026 Answer Key",
+                      date: "July 02, 2026",
+                      status: "Answer Key Released",
+                      category: "MPSC",
+                      description: "Official first key for General Studies Paper I and Paper II CSAT has been published. Aspirants can register queries till July 10, 2026.",
+                      pdfUrl: "https://mpsc.gov.in"
+                    },
+                    {
+                      id: "res-2",
+                      title: "Maharashtra Police Bharti Written Exam 2025 Final Merit List",
+                      date: "June 28, 2026",
+                      status: "Final Results Declared",
+                      category: "Police Bharti",
+                      description: "Constable vacancy merit charts, category cuts, and provisional selection list has been compiled for 17,471 active posts.",
+                      pdfUrl: "https://mahapolice.gov.in"
+                    },
+                    {
+                      id: "res-3",
+                      title: "SSC Selection Post Phase XII Results & Cut-off Marks",
+                      date: "June 25, 2026",
+                      status: "Merit List Active",
+                      category: "SSC Exams",
+                      description: "Official qualification list and category score criteria for intermediate, secondary, and graduation positions is now online.",
+                      pdfUrl: "https://ssc.gov.in"
+                    },
+                    {
+                      id: "res-4",
+                      title: "Maharashtra Talathi Bharti 2025 Document Verification Schedule",
+                      date: "June 18, 2026",
+                      status: "Verification Schedule",
+                      category: "State Exams",
+                      description: "District-wise document check dates, candidate rosters, and required certificate checklist are now downloadable.",
+                      pdfUrl: "https://mahabhumi.gov.in"
+                    }
+                  ]
+                  .filter(res => 
+                    res.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                    res.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    res.status.toLowerCase().includes(searchQuery.toLowerCase())
+                  )
+                  .map((res, index) => (
+                    <div key={res.id} className="relative group" id={`result-item-${res.id}`}>
+                      {/* Timeline Dot Indicator */}
+                      <span className="absolute -left-[33px] top-1.5 w-4 h-4 rounded-full border-4 border-white bg-[#004aad] shadow-xs group-hover:scale-125 transition-transform" />
+                      
+                      <div className="bg-slate-50/50 hover:bg-blue-50/20 border border-slate-100 hover:border-blue-200/50 rounded-2xl p-5 md:p-6 transition-all shadow-3xs hover:shadow-2xs">
+                        <div className="flex flex-wrap justify-between items-start gap-2">
+                          <div>
+                            <span className="inline-block px-2.5 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-widest bg-blue-50 text-[#004aad] border border-blue-100 font-mono mb-2">
+                              {res.category}
+                            </span>
+                            <span className="ml-2 inline-block px-2.5 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-widest bg-emerald-50 text-emerald-700 border border-emerald-100 font-mono mb-2">
+                              {res.status}
+                            </span>
+                            <h4 className="text-base md:text-lg font-bold text-slate-900 tracking-tight leading-snug">
+                              {res.title}
+                            </h4>
+                          </div>
+                          <span className="text-xs text-slate-400 font-semibold font-mono flex items-center gap-1">
+                            📅 {res.date}
+                          </span>
+                        </div>
+                        <p className="text-xs md:text-sm text-slate-600 mt-3 leading-relaxed">
+                          {res.description}
+                        </p>
+                        
+                        <div className="flex justify-end gap-3 mt-4 border-t border-slate-100/60 pt-3">
+                          <button
+                            onClick={() => {
+                              alert(`Simulating download: ${res.title}.pdf (Downloaded successfully!)`);
+                            }}
+                            className="text-xs bg-[#004aad] hover:bg-[#003c8f] text-white font-extrabold px-4 py-2 rounded-lg transition-all flex items-center gap-1 shadow-3xs cursor-pointer"
+                          >
+                            📥 {t("Download PDF / Merit List")}
+                          </button>
+                          <a
+                            href={res.pdfUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs border border-slate-200 hover:border-[#004aad] text-slate-600 hover:text-[#004aad] font-extrabold px-4 py-2 rounded-lg transition-all flex items-center gap-1 cursor-pointer bg-white"
+                          >
+                            🔗 {t("Official Portal")}
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : currentPage === "classes" ? (
+              // NEW CLASSES PAGE - MAZICLASSROOM
+              <div className="w-full bg-white border border-slate-200 rounded-2xl shadow-md p-6 md:p-10 flex flex-col gap-6 text-left animate-fade-in" id="classes-page">
+                <div className="border-b border-slate-100 pb-5">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-red-100 text-red-600 font-mono mb-2">
+                    🎥 {t("MaziClassroom Live 2026")}
+                  </span>
+                  <h3 className="text-2xl md:text-3xl font-black text-slate-900 uppercase tracking-tight font-sans">
+                    {t("Interactive Live & Video Classes")}
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-1">
+                    {t("Highly structured academic mentoring packages led by veteran officers and board experts. Commencing online sessions shortly.")}
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Class Card 1 */}
+                  <div className="border border-slate-100 hover:border-red-200 rounded-2xl p-5 md:p-6 bg-slate-50/30 hover:bg-red-50/5 transition-all flex flex-col justify-between shadow-3xs">
+                    <div>
+                      <div className="flex justify-between items-start mb-3">
+                        <span className="px-2.5 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-widest bg-red-50 text-red-600 border border-red-100 font-mono">
+                          Police Bharti 2026
+                        </span>
+                        <span className="text-[10px] font-mono text-slate-400 font-bold uppercase">
+                          ⏳ 240+ Lectures
+                        </span>
+                      </div>
+                      <h4 className="text-base md:text-lg font-extrabold text-slate-900 tracking-tight leading-snug">
+                        Maharashtra Police Bharti 2026 Constable Super-Batch
+                      </h4>
+                      <p className="text-xs text-slate-500 mt-2 leading-relaxed">
+                        Complete guidance covering General Knowledge, Marathi Grammar (मराठी व्याकरण), Mental Ability & Numerical Shortcuts, alongside expert video tips on physical ground events.
+                      </p>
+                      <ul className="text-xs text-slate-600 mt-4 space-y-2">
+                        <li className="flex items-center gap-1.5">✅ <strong>Marathi Grammar special shortcuts</strong></li>
+                        <li className="flex items-center gap-1.5">✅ <strong>Daily 100-question booster homework</strong></li>
+                        <li className="flex items-center gap-1.5">✅ <strong>Simulated mock runs under live pressure</strong></li>
+                      </ul>
+                    </div>
+                    <div className="mt-5 border-t border-slate-100 pt-4 flex items-center justify-between">
+                      <span className="text-xs text-slate-400 font-mono">Batch Launch: Aug 15</span>
+                      <button
+                        onClick={() => {
+                          const el = document.getElementById("classroom-leads-form");
+                          if (el) el.scrollIntoView({ behavior: 'smooth' });
+                          setClassBatch("Police Bharti Batch 2026");
+                        }}
+                        className="text-xs bg-red-600 hover:bg-red-700 text-white font-extrabold px-4 py-2 rounded-lg transition-all cursor-pointer"
+                      >
+                        🔔 Register Interest
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Class Card 2 */}
+                  <div className="border border-slate-100 hover:border-blue-200 rounded-2xl p-5 md:p-6 bg-slate-50/30 hover:bg-blue-50/5 transition-all flex flex-col justify-between shadow-3xs">
+                    <div>
+                      <div className="flex justify-between items-start mb-3">
+                        <span className="px-2.5 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-widest bg-blue-50 text-blue-600 border border-blue-100 font-mono">
+                          MPSC Foundation
+                        </span>
+                        <span className="text-[10px] font-mono text-slate-400 font-bold uppercase">
+                          ⏳ 450+ Lectures
+                        </span>
+                      </div>
+                      <h4 className="text-base md:text-lg font-extrabold text-slate-900 tracking-tight leading-snug">
+                        MPSC State Services Comprehensive GS Foundation Batch
+                      </h4>
+                      <p className="text-xs text-slate-500 mt-2 leading-relaxed">
+                        In-depth conceptual study covering History of Maharashtra, Sahyadri geography, Polity, Economics, General Sciences, and Paper-II CSAT logic tricks.
+                      </p>
+                      <ul className="text-xs text-slate-600 mt-4 space-y-2">
+                        <li className="flex items-center gap-1.5">✅ <strong>Comprehensive GS mains answer feedback</strong></li>
+                        <li className="flex items-center gap-1.5">✅ <strong>Bilingual reference booklets (PDF)</strong></li>
+                        <li className="flex items-center gap-1.5">✅ <strong>CSAT logic & speed shortcuts</strong></li>
+                      </ul>
+                    </div>
+                    <div className="mt-5 border-t border-slate-100 pt-4 flex items-center justify-between">
+                      <span className="text-xs text-slate-400 font-mono">Batch Launch: Sep 01</span>
+                      <button
+                        onClick={() => {
+                          const el = document.getElementById("classroom-leads-form");
+                          if (el) el.scrollIntoView({ behavior: 'smooth' });
+                          setClassBatch("MPSC Foundation Batch");
+                        }}
+                        className="text-xs bg-[#004aad] hover:bg-[#003c8f] text-white font-extrabold px-4 py-2 rounded-lg transition-all cursor-pointer"
+                      >
+                        🔔 Register Interest
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Lead submission form */}
+                <div className="mt-8 border-t border-slate-100 pt-8" id="classroom-leads-form">
+                  <div className="bg-slate-50 border border-slate-100 rounded-2xl p-6 md:p-8 max-w-xl mx-auto">
+                    <h4 className="text-lg font-extrabold text-slate-950 uppercase tracking-tight text-center mb-1">
+                      📬 {t("Classrooms Notification Registrary")}
+                    </h4>
+                    <p className="text-xs text-slate-500 text-center mb-6">
+                      {t("Submit your contact details to receive a complimentary invitation with full syllabus schedule on class commencement.")}
+                    </p>
+
+                    {classSuccess ? (
+                      <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-4 rounded-xl text-center space-y-2">
+                        <span className="text-2xl">🎉</span>
+                        <h5 className="font-extrabold text-sm">{t("Interest Registered Successfully!")}</h5>
+                        <p className="text-xs leading-relaxed">{t("Our education desk has securely saved your batch choice. We will notify you on WhatsApp/Email.")}</p>
+                        <button 
+                          onClick={() => setClassSuccess(false)}
+                          className="mt-2 text-xs font-bold text-emerald-600 hover:underline"
+                        >
+                          {t("Submit another request")}
+                        </button>
+                      </div>
+                    ) : (
+                      <form onSubmit={handleClassroomLeadSubmit} className="space-y-4">
+                        <div>
+                          <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide block mb-1">
+                            {t("Full Name")} *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={classFullName}
+                            onChange={(e) => setClassFullName(e.target.value)}
+                            placeholder="Aspirant Name"
+                            className="w-full bg-white border border-slate-200 rounded-lg p-3 text-sm focus:outline-none focus:border-[#004aad]"
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide block mb-1">
+                              {t("Email Address")} *
+                            </label>
+                            <input
+                              type="email"
+                              required
+                              value={classEmail}
+                              onChange={(e) => setClassEmail(e.target.value)}
+                              placeholder="aspirant@example.com"
+                              className="w-full bg-white border border-slate-200 rounded-lg p-3 text-sm focus:outline-none focus:border-[#004aad]"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide block mb-1">
+                              {t("WhatsApp / Phone Number")} *
+                            </label>
+                            <input
+                              type="tel"
+                              required
+                              value={classPhone}
+                              onChange={(e) => setClassPhone(e.target.value)}
+                              placeholder="e.g. +91 9876543210"
+                              className="w-full bg-white border border-slate-200 rounded-lg p-3 text-sm focus:outline-none focus:border-[#004aad]"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide block mb-1">
+                            {t("Target Learning Batch")} *
+                          </label>
+                          <select
+                            value={classBatch}
+                            onChange={(e) => setClassBatch(e.target.value)}
+                            className="w-full bg-white border border-slate-200 rounded-lg p-3 text-sm focus:outline-none focus:border-[#004aad]"
+                          >
+                            <option value="Police Bharti Batch 2026">Police Bharti Constable Batch 2026</option>
+                            <option value="MPSC Foundation Batch">MPSC Rajyaseva GS Foundation Batch</option>
+                            <option value="General Combined Batch">PSI/STI/ASO Group B & C Combined Batch</option>
+                          </select>
+                        </div>
+
+                        <button
+                          type="submit"
+                          disabled={classLoading}
+                          className="w-full bg-[#004aad] hover:bg-[#003c8f] disabled:bg-slate-300 text-white font-extrabold text-sm py-3 rounded-lg transition-all cursor-pointer shadow-xs uppercase tracking-wider mt-2 flex justify-center items-center"
+                        >
+                          {classLoading ? t("Securing leads...") : t("Secure Invitation & Notification")}
+                        </button>
+                      </form>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : currentPage === "dashboard" ? (
+              // DEDICATED PERSONAL DASHBOARD VIEW
+              <div className="w-full bg-white border border-slate-200 rounded-2xl shadow-md p-6 md:p-10 flex flex-col gap-6 text-left animate-fade-in" id="dashboard-page">
+                <div className="border-b border-slate-100 pb-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                  <div>
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#004aad]/10 text-[#004aad] rounded-full text-[10px] font-black uppercase tracking-widest font-mono">
+                      👤 {t("Aspirant Account Vault")}
+                    </span>
+                    <h3 className="text-2xl md:text-3xl font-black text-slate-900 uppercase tracking-tight font-sans mt-2">
+                      {t("My Dashboard")}
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-1">
+                      {currentUser?.email}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      auth.signOut().then(() => {
+                        setCurrentPage("jobs");
+                        alert("Logged out successfully.");
+                      });
+                    }}
+                    className="text-xs border border-red-200 text-red-600 hover:bg-red-50 font-bold px-4 py-2 rounded-lg transition-all cursor-pointer animate-fade-in"
+                  >
+                    Logout
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  {/* Left Column: Profile Settings Form */}
+                  <div className="lg:col-span-2 border border-slate-100 rounded-2xl p-6 bg-slate-50/20 space-y-6">
+                    <h4 className="text-base font-black text-slate-900 uppercase tracking-wide border-b pb-2 flex items-center gap-1.5">
+                      ⚙️ {t("Account Settings")}
+                    </h4>
+
+                    {profileSavedMsg && (
+                      <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-3 rounded-lg text-xs font-bold animate-pulse">
+                        ✓ {profileSavedMsg}
+                      </div>
+                    )}
+
+                    <form onSubmit={handleSaveProfile} className="space-y-4 text-xs md:text-sm">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide block mb-1">
+                            {t("Full Name")}
+                          </label>
+                          <input
+                            type="text"
+                            value={profileFullName}
+                            onChange={(e) => setProfileFullName(e.target.value)}
+                            placeholder="John Doe"
+                            className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-xs focus:outline-none focus:border-[#004aad]"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide block mb-1">
+                            {t("WhatsApp / Phone")}
+                          </label>
+                          <input
+                            type="tel"
+                            value={profilePhone}
+                            onChange={(e) => setProfilePhone(e.target.value)}
+                            placeholder="e.g. 9876543210"
+                            className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-xs focus:outline-none focus:border-[#004aad]"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide block mb-1">
+                            {t("State / Region")}
+                          </label>
+                          <input
+                            type="text"
+                            value={profileState}
+                            onChange={(e) => setProfileState(e.target.value)}
+                            placeholder="e.g. Pune, Maharashtra"
+                            className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-xs focus:outline-none focus:border-[#004aad]"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide block mb-1">
+                            {t("Target Exam Preference")}
+                          </label>
+                          <select
+                            value={profileExamPref}
+                            onChange={(e) => setProfileExamPref(e.target.value)}
+                            className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-xs focus:outline-none focus:border-[#004aad]"
+                          >
+                            <option value="MPSC">MPSC State Services</option>
+                            <option value="Police Bharti">Police Bharti</option>
+                            <option value="SSC Exams">SSC CGL / CHSL</option>
+                            <option value="State Exams">Other State board Exams</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="pt-2">
+                        <button
+                          type="submit"
+                          disabled={profileLoading}
+                          className="bg-[#004aad] hover:bg-[#003c8f] disabled:bg-slate-300 text-white font-extrabold text-xs px-5 py-2.5 rounded-lg transition-all cursor-pointer uppercase tracking-wider"
+                        >
+                          {profileLoading ? t("Saving Parameters...") : t("Save Profile Parameters")}
+                        </button>
+                      </div>
+                    </form>
+
+                    {/* Change Password utility */}
+                    <div className="border-t border-slate-100 pt-6">
+                      <h5 className="text-xs font-black text-slate-800 uppercase tracking-wide mb-2 flex items-center gap-1">
+                        🔒 {t("Secure Password Recovery")}
+                      </h5>
+                      <p className="text-xs text-slate-500 mb-3 text-left">
+                        {t("Need to update or forgot your password? Trigger secure password reset instructions directly to your registered email.")}
+                      </p>
+                      <button
+                        onClick={async () => {
+                          if (currentUser?.email) {
+                            try {
+                              await sendPasswordResetEmail(auth, currentUser.email);
+                              alert(`✓ Password reset email successfully sent to ${currentUser.email}! Please verify your spam folder.`);
+                            } catch (err: any) {
+                              alert(`Error sending reset link: ${err.message}`);
+                            }
+                          }
+                        }}
+                        className="text-xs bg-white border border-slate-200 hover:border-[#004aad] hover:text-[#004aad] text-slate-700 font-bold px-4 py-2 rounded-lg transition-all cursor-pointer"
+                      >
+                        📬 {t("Send Password Reset Email")}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Right Column: History & Subscriptions */}
+                  <div className="space-y-6">
+                    {/* Subscriptions Card */}
+                    <div className="border border-slate-100 rounded-2xl p-5 md:p-6 bg-slate-50/20 shadow-3xs">
+                      <h4 className="text-xs font-black text-slate-900 uppercase tracking-wide border-b pb-2 flex items-center gap-1">
+                        💳 {t("My Subscriptions")}
+                      </h4>
+                      <div className="mt-4">
+                        {hasPortalPass ? (
+                          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-amber-900 text-xs font-semibold space-y-2">
+                            <div className="flex justify-between items-center text-[10px] font-mono text-amber-700 font-black">
+                              <span>PREMIUM PASS STATUS</span>
+                              <span className="text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full uppercase tracking-widest">ACTIVE</span>
+                            </div>
+                            <p className="text-xs font-bold">₹80 Selection Pass or ₹50 Practice Pack is currently tied to your database profile.</p>
+                            <p className="text-[10px] text-amber-600 font-mono">Unlock all PYQ PDFs, full timer analysis, and limitless exam attempts.</p>
+                          </div>
+                        ) : (
+                          <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-slate-700 text-xs text-center space-y-3">
+                            <p className="font-semibold text-slate-500">You are on the Free Academic Sandbox tier.</p>
+                            <button
+                              onClick={() => {
+                                setCurrentPage("selection");
+                              }}
+                              className="w-full bg-gradient-to-r from-amber-500 to-yellow-500 text-white font-extrabold text-xs py-2 rounded-lg transition-all shadow-3xs cursor-pointer"
+                            >
+                              🚀 Unlock ₹50 / ₹80 Pass
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Practice History Card */}
+                    <div className="border border-slate-100 rounded-2xl p-5 md:p-6 bg-slate-50/20 shadow-3xs">
+                      <h4 className="text-xs font-black text-slate-900 uppercase tracking-wide border-b pb-2 flex items-center gap-1">
+                        📊 {t("My Practice History")}
+                      </h4>
+
+                      <div className="grid grid-cols-2 gap-2 mt-4">
+                        <div className="bg-white p-3 rounded-lg border border-slate-100 text-center">
+                          <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Solved Mocks</span>
+                          <span className="text-xl font-black text-[#004aad] font-mono">{solvedAttempts.length}</span>
+                        </div>
+                        <div className="bg-white p-3 rounded-lg border border-slate-100 text-center">
+                          <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Avg Score</span>
+                          <span className="text-xl font-black text-emerald-600 font-mono">
+                            {solvedAttempts.length > 0 
+                              ? `${Math.round(solvedAttempts.reduce((acc, curr) => acc + (curr.score || 0), 0) / solvedAttempts.length)}%`
+                              : "0%"
+                            }
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 space-y-2 max-h-[180px] overflow-y-auto pr-1">
+                        {loadingAttempts ? (
+                          <p className="text-xs text-slate-400 italic text-center py-2">Syncing database logs...</p>
+                        ) : solvedAttempts.length > 0 ? (
+                          solvedAttempts.map((attempt, index) => (
+                            <div key={index} className="bg-white border border-slate-100 p-2.5 rounded-lg flex justify-between items-center text-[10px] font-mono">
+                              <div className="truncate pr-2">
+                                <span className="font-bold text-slate-700 block truncate">{attempt.testTitle}</span>
+                                <span className="text-[8px] text-slate-400 font-bold block">{attempt.solvedAt ? new Date(attempt.solvedAt).toLocaleDateString() : ""}</span>
+                              </div>
+                              <span className={`px-2 py-0.5 rounded-full font-bold uppercase tracking-wide shrink-0 ${attempt.passed ? "bg-emerald-50 text-emerald-700" : "bg-slate-50 text-slate-500"}`}>
+                                {attempt.score}%
+                              </span>
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-xs text-slate-400 italic text-center py-4">No completed tests logged yet. Take a mock exam to view your stats!</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : currentPage === "job-detail" ? (
+              // JOB ALERTS DETAIL SUB-PAGE
+              <div className="w-full bg-white border border-slate-200 rounded-2xl shadow-md p-6 md:p-10 flex flex-col gap-6 text-left animate-fade-in" id="job-detail-page">
+                {/* Back button */}
+                <div>
+                  <button
+                    onClick={() => {
+                      setCurrentPage("jobs");
+                      setSelectedJob(null);
+                    }}
+                    className="text-xs text-slate-500 hover:text-[#004aad] font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                  >
+                    ← Back to All Job Alerts
+                  </button>
+                </div>
+
+                {selectedJob ? (
+                  <div className="space-y-6">
+                    {/* Header bar styled like first section */}
+                    <div className="border border-blue-500 bg-blue-50 p-4 md:p-6 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                      <div>
+                        <span className="inline-block px-2.5 py-0.5 rounded text-[10px] font-black uppercase tracking-widest bg-[#004aad] text-white font-mono mb-2">
+                          {selectedJob.category} Recruitment Alert
+                        </span>
+                        <h3 className="text-xl md:text-2xl font-black text-[#004aad] uppercase tracking-tight leading-snug">
+                          {selectedJob.title}
+                        </h3>
+                        <p className="text-xs text-slate-600 font-bold uppercase tracking-wider font-mono mt-1">
+                          🏢 {selectedJob.organization}
+                        </p>
+                      </div>
+                      <span className="text-xs text-slate-500 font-mono font-bold shrink-0 bg-white border border-slate-200 px-3 py-1 rounded-md">
+                        📅 Last Date: {selectedJob.lastDate}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                      {/* Left: Complete Info Card */}
+                      <div className="lg:col-span-2 space-y-6">
+                        {/* Vacancy Breakdown Table */}
+                        <div className="border border-slate-200 rounded-2xl p-5 md:p-6">
+                          <h4 className="text-xs font-black uppercase text-blue-900 tracking-wider mb-3 flex items-center gap-1 border-b pb-2">
+                            📊 Vacancy Distribution Breakdown
+                          </h4>
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-xs text-slate-600 border border-slate-200 rounded-xl overflow-hidden bg-slate-50/20">
+                              <thead>
+                                <tr className="bg-slate-50 border-b border-slate-200 font-bold text-slate-800">
+                                  <th className="p-2.5">Category Class</th>
+                                  <th className="p-2.5">Seat Distribution (Percentage)</th>
+                                  <th className="p-2.5">Estimated Posts</th>
+                                  <th className="p-2.5">Status</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-slate-100 text-slate-700">
+                                <tr>
+                                  <td className="p-2.5 font-bold">Unreserved / General (UR)</td>
+                                  <td className="p-2.5">38%</td>
+                                  <td className="p-2.5 font-mono">195 Posts</td>
+                                  <td className="p-2.5 text-emerald-600 font-bold">Available</td>
+                                </tr>
+                                <tr>
+                                  <td className="p-2.5 font-bold">Other Backward Classes (OBC)</td>
+                                  <td className="p-2.5">19%</td>
+                                  <td className="p-2.5 font-mono">97 Posts</td>
+                                  <td className="p-2.5 text-emerald-600 font-bold">Available</td>
+                                </tr>
+                                <tr>
+                                  <td className="p-2.5 font-bold">Economically Weaker Section (EWS)</td>
+                                  <td className="p-2.5">10%</td>
+                                  <td className="p-2.5 font-mono">51 Posts</td>
+                                  <td className="p-2.5 text-emerald-600 font-bold">Available</td>
+                                </tr>
+                                <tr>
+                                  <td className="p-2.5 font-bold">Scheduled Castes (SC)</td>
+                                  <td className="p-2.5">13%</td>
+                                  <td className="p-2.5 font-mono">67 Posts</td>
+                                  <td className="p-2.5 text-emerald-600 font-bold">Available</td>
+                                </tr>
+                                <tr>
+                                  <td className="p-2.5 font-bold">Scheduled Tribes (ST)</td>
+                                  <td className="p-2.5">7%</td>
+                                  <td className="p-2.5 font-mono">36 Posts</td>
+                                  <td className="p-2.5 text-emerald-600 font-bold">Available</td>
+                                </tr>
+                                <tr className="bg-slate-50 font-extrabold text-slate-900 border-t">
+                                  <td className="p-2.5">Total Available Posts</td>
+                                  <td className="p-2.5">100%</td>
+                                  <td className="p-2.5 font-mono">{selectedJob.vacancies}</td>
+                                  <td className="p-2.5 text-[#004aad]">Full Capacity</td>
+                                </tr>
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+
+                        {/* Post Eligibility and Details */}
+                        <div className="border border-slate-200 rounded-2xl p-5 md:p-6 space-y-4">
+                          <div>
+                            <h4 className="text-xs font-black uppercase text-blue-900 tracking-wider border-b pb-1.5 mb-2">
+                              🎓 Minimum Eligibility Criteria
+                            </h4>
+                            <p className="text-xs md:text-sm text-slate-600 font-semibold leading-relaxed bg-slate-50 p-3 rounded-lg border border-slate-100">
+                              💡 {selectedJob.qualification}
+                            </p>
+                          </div>
+
+                          <div>
+                            <h4 className="text-xs font-black uppercase text-blue-900 tracking-wider border-b pb-1.5 mb-2">
+                              ⚙️ Selection Process Sequence
+                            </h4>
+                            <ol className="text-xs text-slate-600 space-y-2 pl-4 list-decimal leading-relaxed">
+                              <li><strong>Phase I (Written Examination):</strong> Multiple Choice Questions (Bilingual standard) covering GS and mental ability.</li>
+                              <li><strong>Phase II (Physical Fitness Evaluation / Technical Skill Test):</strong> Wherever explicitly applicable based on post requirements.</li>
+                              <li><strong>Phase III (Formal Document Check):</strong> Verification of age, category credentials, and educational qualification certificates.</li>
+                            </ol>
+                          </div>
+
+                          <div>
+                            <h4 className="text-xs font-black uppercase text-blue-900 tracking-wider border-b pb-1.5 mb-2">
+                              📄 Recruitment Summary Notes
+                            </h4>
+                            <p className="text-xs md:text-sm text-slate-600 leading-relaxed">
+                              {selectedJob.details}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Right: Actions and Utilities */}
+                      <div className="space-y-6">
+                        <div className="border border-slate-200 rounded-2xl p-5 md:p-6 bg-slate-50/20 shadow-3xs space-y-4">
+                          <h4 className="text-xs font-black uppercase text-slate-900 tracking-wider border-b pb-2">
+                            🚀 Actions Panel
+                          </h4>
+
+                          <div className="space-y-2">
+                            <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Compensation Pay Scale</span>
+                            <span className="text-sm font-black text-emerald-600 font-mono block bg-white border border-slate-100 px-3 py-2 rounded-lg">
+                              💵 {selectedJob.salary}
+                            </span>
+                          </div>
+
+                          <div className="space-y-2 pt-2">
+                            <a
+                              href={selectedJob.link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="w-full bg-[#004aad] hover:bg-[#003c8f] text-white font-extrabold text-xs py-3 rounded-lg transition-all shadow-3xs flex justify-center items-center gap-1 cursor-pointer"
+                            >
+                              🔗 Official Recruitment Portal
+                            </a>
+
+                            <button
+                              onClick={() => {
+                                const whatsappUrl = `https://api.whatsapp.com/send?text=Check out this Job Alert on MaziExam: ${encodeURIComponent(selectedJob.title)} - Post: ${encodeURIComponent(selectedJob.postName)}. Last date is ${selectedJob.lastDate}. Read full details here: ${window.location.href}`;
+                                window.open(whatsappUrl, "_blank");
+                              }}
+                              className="w-full bg-[#25d366] hover:bg-[#20ba5a] text-white font-extrabold text-xs py-3 rounded-lg transition-all shadow-3xs flex justify-center items-center gap-1.5 cursor-pointer mt-2"
+                            >
+                              📲 Share to WhatsApp
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Notifications Active warning */}
+                        <div className="bg-blue-50 border border-blue-200 rounded-2xl p-5 text-xs text-blue-900 space-y-2">
+                          <h5 className="font-extrabold uppercase text-[10px] tracking-wider text-blue-800">Job Alerts Notification Enabled</h5>
+                          <p className="leading-relaxed">Because our animated notification service is active, we will automatically prompt you on your device once the category-wise admit book releases for this {selectedJob.organization} cycle.</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-10 italic text-slate-400 font-semibold">
+                    Please select a job alert to view details.
+                  </div>
+                )}
+              </div>
+            ) : currentPage === "mock-detail" ? (
+              // MOCK TEST LANDING PAGE
+              <div className="w-full bg-white border border-slate-200 rounded-2xl shadow-md p-6 md:p-10 flex flex-col gap-6 text-left animate-fade-in" id="mock-detail-page">
+                {/* Back button */}
+                <div>
+                  <button
+                    onClick={() => {
+                      setCurrentPage("mock");
+                      setSelectedMock(null);
+                    }}
+                    className="text-xs text-slate-500 hover:text-[#004aad] font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                  >
+                    ← Back to All Mock Tests
+                  </button>
+                </div>
+
+                {selectedMock ? (
+                  <div className="space-y-6">
+                    {/* Header bar styled like first section */}
+                    <div className="border border-blue-500 bg-blue-50 p-4 md:p-6 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                      <div>
+                        <span className="inline-block px-2.5 py-0.5 rounded text-[10px] font-black uppercase tracking-widest bg-[#004aad] text-white font-mono mb-2">
+                          {selectedMock.category} Live Exam Simulator
+                        </span>
+                        <h3 className="text-xl md:text-2xl font-black text-[#004aad] uppercase tracking-tight leading-snug">
+                          {selectedMock.title}
+                        </h3>
+                        <p className="text-xs text-slate-600 font-bold uppercase tracking-wider font-mono mt-1">
+                          📋 Duration: {selectedMock.durationMinutes} Minutes • Questions: {selectedMock.questions.length}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => handleStartTest(selectedMock)}
+                        className="text-xs bg-[#004aad] hover:bg-[#003c8f] text-white font-extrabold px-6 py-3 rounded-xl transition-all cursor-pointer shadow-sm hover:shadow-md uppercase tracking-wider shrink-0"
+                      >
+                        🚀 Start Simulator Now
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                      {/* Left: Rules and Syllabus */}
+                      <div className="lg:col-span-2 space-y-6">
+                        {/* Syllabus Covered */}
+                        <div className="border border-slate-200 rounded-2xl p-5 md:p-6">
+                          <h4 className="text-xs font-black uppercase text-blue-900 tracking-wider mb-3 flex items-center gap-1 border-b pb-2">
+                            📚 Syllabus covered in this Mock Test
+                          </h4>
+                          <p className="text-xs text-slate-500 mb-4">
+                            These questions have been specifically cross-referenced from modern Maharashtra Board school books and official syllabus rules:
+                          </p>
+                          <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-700 font-semibold">
+                            <li className="p-2.5 bg-slate-50 rounded-lg border border-slate-100">🏷️ General Studies & Current Affairs</li>
+                            <li className="p-2.5 bg-slate-50 rounded-lg border border-slate-100">🏷️ Sahyadri Geography & Forest resources</li>
+                            <li className="p-2.5 bg-slate-50 rounded-lg border border-slate-100">🏷️ Shivaji Maharaj era State Administation</li>
+                            <li className="p-2.5 bg-slate-50 rounded-lg border border-slate-100">🏷️ Quantitative Aptitude Shortcuts</li>
+                            <li className="p-2.5 bg-slate-50 rounded-lg border border-slate-100">🏷️ Marathi Grammar & Vocabulary (Bilingual)</li>
+                            <li className="p-2.5 bg-slate-50 rounded-lg border border-slate-100">🏷️ Logical reasoning puzzle solving</li>
+                          </ul>
+                        </div>
+
+                        {/* Exam Simulator Instructions */}
+                        <div className="border border-slate-200 rounded-2xl p-5 md:p-6 space-y-4">
+                          <h4 className="text-xs font-black uppercase text-blue-900 tracking-wider border-b pb-2 mb-2">
+                            ⚠️ Mandatory Simulator Rules
+                          </h4>
+                          <ul className="text-xs text-slate-600 space-y-3 pl-4 list-disc leading-relaxed">
+                            <li><strong>Timer Control:</strong> The clock is strictly bound at {selectedMock.durationMinutes} minutes. It does not pause once initiated.</li>
+                            <li><strong>Evaluation Parameters:</strong> Each question represents 1 score point. No negative marking is applied in this academic sandbox.</li>
+                            <li><strong>Browser Restrictions:</strong> Ensure you do not reload or change tabs. Doing so might erase current response buffers.</li>
+                            <li><strong>Passing Threshold:</strong> Aspirants securing equal or higher than 60% are certified as Passed and written to our practice log vault.</li>
+                          </ul>
+                        </div>
+                      </div>
+
+                      {/* Right: Stats and Launch */}
+                      <div className="space-y-6">
+                        <div className="border border-slate-200 rounded-2xl p-5 md:p-6 bg-slate-50/20 shadow-3xs text-center space-y-4">
+                          <h4 className="text-xs font-black uppercase text-slate-900 tracking-wider border-b pb-2">
+                            🛡️ Simulator Launcher
+                          </h4>
+                          <div className="p-4 bg-white border border-slate-100 rounded-xl">
+                            <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Attempts Allowed</span>
+                            <span className="text-xl font-black text-slate-800 font-mono block mt-1">Unlimited (Free Sandbox)</span>
+                          </div>
+                          <button
+                            onClick={() => handleStartTest(selectedMock)}
+                            className="w-full bg-[#004aad] hover:bg-[#003c8f] text-white font-extrabold text-xs py-3.5 rounded-lg transition-all shadow-3xs uppercase tracking-wider cursor-pointer"
+                          >
+                            🚀 Start Simulator Now
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-10 italic text-slate-400 font-semibold">
+                    Please select a mock test to view details.
+                  </div>
+                )}
+              </div>
+            ) : currentPage === "pdf-detail" ? (
+              // PYQ PDF LANDING PAGE
+              <div className="w-full bg-white border border-slate-200 rounded-2xl shadow-md p-6 md:p-10 flex flex-col gap-6 text-left animate-fade-in" id="pdf-detail-page">
+                {/* Back button */}
+                <div>
+                  <button
+                    onClick={() => {
+                      setCurrentPage("pdf");
+                      setSelectedPdf(null);
+                    }}
+                    className="text-xs text-slate-500 hover:text-[#004aad] font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                  >
+                    ← Back to PYQ PDF Vault
+                  </button>
+                </div>
+
+                {selectedPdf ? (
+                  <div className="space-y-6">
+                    {/* Header bar styled like first section */}
+                    <div className="border border-blue-500 bg-blue-50 p-4 md:p-6 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                      <div>
+                        <span className="inline-block px-2.5 py-0.5 rounded text-[10px] font-black uppercase tracking-widest bg-[#004aad] text-white font-mono mb-2">
+                          {selectedPdf.category} PYQ Solution Book
+                        </span>
+                        <h3 className="text-xl md:text-2xl font-black text-[#004aad] uppercase tracking-tight leading-snug">
+                          {selectedPdf.title}
+                        </h3>
+                        <p className="text-xs text-slate-600 font-bold uppercase tracking-wider font-mono mt-1">
+                          📄 Subject: {selectedPdf.subject} • Solved Questions: {selectedPdf.questionsCount}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          alert(`Simulating secure download for ${selectedPdf.title}.pdf (${selectedPdf.fileSize}). Successful!`);
+                        }}
+                        className="text-xs bg-[#004aad] hover:bg-[#003c8f] text-white font-extrabold px-6 py-3 rounded-xl transition-all cursor-pointer shadow-sm hover:shadow-md uppercase tracking-wider shrink-0"
+                      >
+                        📥 Download File ({selectedPdf.fileSize})
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                      {/* Left: Document details and preview */}
+                      <div className="lg:col-span-2 space-y-6">
+                        {/* Key Highlight Card */}
+                        <div className="border border-slate-200 rounded-2xl p-5 md:p-6 bg-slate-50/20">
+                          <h4 className="text-xs font-black uppercase text-blue-900 tracking-wider mb-3 flex items-center gap-1 border-b pb-2">
+                            🌟 Official Solution Key Highlights
+                          </h4>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs text-slate-700">
+                            <div className="bg-white p-3 rounded-xl border border-slate-100 flex gap-2 items-start">
+                              <span className="text-emerald-500 text-sm">✓</span>
+                              <div>
+                                <strong className="block text-slate-800">Double Verified Keys</strong>
+                                Master answers authenticated by veteran Maharashtra civil services professors.
+                              </div>
+                            </div>
+                            <div className="bg-white p-3 rounded-xl border border-slate-100 flex gap-2 items-start">
+                              <span className="text-emerald-500 text-sm">✓</span>
+                              <div>
+                                <strong className="block text-slate-800">Detailed Explanations</strong>
+                                Step-by-step mathematical reasoning and constitutional background details.
+                              </div>
+                            </div>
+                            <div className="bg-white p-3 rounded-xl border border-slate-100 flex gap-2 items-start">
+                              <span className="text-emerald-500 text-sm">✓</span>
+                              <div>
+                                <strong className="block text-slate-800">Bilingual Support</strong>
+                                Fully translated in native Marathi (मराठी) and academic English formats.
+                              </div>
+                            </div>
+                            <div className="bg-white p-3 rounded-xl border border-slate-100 flex gap-2 items-start">
+                              <span className="text-emerald-500 text-sm">✓</span>
+                              <div>
+                                <strong className="block text-slate-800">Fully Printable</strong>
+                                Clean, optimized single-column layout tailored for physical document prints.
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Embedded Mock PDF Document Preview */}
+                        <div className="border border-slate-200 rounded-2xl p-5 md:p-6">
+                          <h4 className="text-xs font-black uppercase text-blue-900 tracking-wider mb-3 flex items-center gap-1 border-b pb-2">
+                            👁️ Solution Booklet Live Preview
+                          </h4>
+                          <div className="bg-slate-900 text-slate-200 font-mono text-[11px] p-4 rounded-xl max-h-[300px] overflow-y-auto leading-relaxed border border-slate-800 select-none">
+                            <span className="block text-slate-500 uppercase tracking-widest text-[9px] mb-2 border-b border-slate-800 pb-1">Page 1 of Solutions (Academic Sandbox Demo)</span>
+                            {selectedPdf.pages && selectedPdf.pages.length > 0 ? (
+                              selectedPdf.pages.map((pageText: string, index: number) => (
+                                <div key={index} className="space-y-2 mb-4">
+                                  <pre className="whitespace-pre-wrap font-mono text-[11px] font-medium">{pageText}</pre>
+                                </div>
+                              ))
+                            ) : (
+                              <p className="italic text-slate-500">Preview page is compiling...</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Right: Actions */}
+                      <div className="space-y-6">
+                        <div className="border border-slate-200 rounded-2xl p-5 md:p-6 bg-slate-50/20 shadow-3xs text-center space-y-4">
+                          <h4 className="text-xs font-black uppercase text-slate-900 tracking-wider border-b pb-2">
+                            📥 File Properties
+                          </h4>
+                          <div className="space-y-2 text-xs">
+                            <div className="flex justify-between items-center py-1.5 border-b border-slate-100">
+                              <span className="text-slate-400">File Format</span>
+                              <span className="font-bold text-slate-800">PDF (.pdf)</span>
+                            </div>
+                            <div className="flex justify-between items-center py-1.5 border-b border-slate-100">
+                              <span className="text-slate-400">Download Size</span>
+                              <span className="font-bold text-[#004aad] font-mono">{selectedPdf.fileSize}</span>
+                            </div>
+                            <div className="flex justify-between items-center py-1.5 border-b border-slate-100">
+                              <span className="text-slate-400">Document Year</span>
+                              <span className="font-bold text-slate-800 font-mono">{selectedPdf.year}</span>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => {
+                              alert(`Simulating secure download for ${selectedPdf.title}.pdf (${selectedPdf.fileSize}). Successful!`);
+                            }}
+                            className="w-full bg-[#004aad] hover:bg-[#003c8f] text-white font-extrabold text-xs py-3 rounded-lg transition-all shadow-3xs uppercase tracking-wider cursor-pointer"
+                          >
+                            📥 Download Solution Booklet
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-10 italic text-slate-400 font-semibold">
+                    Please select a PYQ PDF booklet to view details.
+                  </div>
+                )}
+              </div>
+            ) : null}
           </div>
         </div>
       </main>

@@ -24,6 +24,33 @@
         "unlockedPacks": { "type": "array", "description": "IDs of premium packs unlocked" }
       },
       "required": ["userId", "hasPortalPass", "unlockedPacks"]
+    },
+    "user_profiles": {
+      "title": "User Profile",
+      "description": "Extended user profile details",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "The UID of the user" },
+        "fullName": { "type": "string", "description": "Full display name" },
+        "phoneNumber": { "type": "string", "description": "Contact number" },
+        "state": { "type": "string", "description": "State of residence" },
+        "examPreference": { "type": "string", "description": "Primary exam preference" },
+        "notificationsActive": { "type": "boolean", "description": "Whether job notifications are toggled active" }
+      },
+      "required": ["userId", "fullName", "phoneNumber", "state", "examPreference", "notificationsActive"]
+    },
+    "classroom_leads": {
+      "title": "Classroom Lead",
+      "description": "Interests submitted for upcoming video classes",
+      "type": "object",
+      "properties": {
+        "fullName": { "type": "string", "description": "Full name of the user" },
+        "email": { "type": "string", "description": "Email address" },
+        "phoneNumber": { "type": "string", "description": "Phone number" },
+        "preferredBatch": { "type": "string", "description": "The class or batch of interest" },
+        "timestamp": { "type": "integer", "description": "Submission time" }
+      },
+      "required": ["fullName", "email", "phoneNumber", "preferredBatch", "timestamp"]
     }
   },
   "firestore": {
@@ -34,6 +61,14 @@
     "/user_purchases/{userId}": {
       "schema": "user_purchases",
       "description": "Purchased status for standard portal pass and premium exam crackers"
+    },
+    "/user_profiles/{userId}": {
+      "schema": "user_profiles",
+      "description": "User custom account details and preference settings"
+    },
+    "/classroom_leads/{leadId}": {
+      "schema": "classroom_leads",
+      "description": "Student leads for future MaziClassroom batches"
     }
   }
 }

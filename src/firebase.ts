@@ -7,6 +7,7 @@ import {
   onAuthStateChanged,
   sendPasswordResetEmail,
   updateProfile,
+  updatePassword,
   User
 } from "firebase/auth";
 import { 
@@ -93,6 +94,7 @@ export {
   onAuthStateChanged,
   sendPasswordResetEmail,
   updateProfile,
+  updatePassword,
   doc,
   setDoc,
   getDoc,
