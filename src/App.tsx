@@ -1839,9 +1839,9 @@ export default function App() {
                     {/* Widget A: Upcoming Exam Calendar */}
                     <div className="bg-white border border-[#004aad] rounded-lg shadow-sm hover:shadow-md hover:border-2 transition-all p-5 flex flex-col justify-between text-left" id="widget-upcoming-exams">
                       <div>
-                        <div className="flex items-center gap-2 px-3 py-2.5 mb-4 bg-[#004aad] text-white rounded-lg shadow-sm">
-                          <Calendar size={18} className="text-white shrink-0" />
-                          <h4 className="text-sm font-black uppercase tracking-wider text-white">
+                        <div className="flex items-center gap-2 px-4 py-3 mb-4 bg-[#004aad] border-2 border-blue-300 text-white rounded-lg shadow-md">
+                          <Calendar size={20} className="text-white shrink-0" />
+                          <h4 className="text-sm md:text-base font-extrabold uppercase tracking-wider text-white">
                             Upcoming Exam Calendar
                           </h4>
                         </div>
@@ -1884,9 +1884,9 @@ export default function App() {
                     {/* Widget B: Latest Declared Results */}
                     <div className="bg-white border border-[#004aad] rounded-lg shadow-sm hover:shadow-md hover:border-2 transition-all p-5 flex flex-col justify-between text-left" id="widget-declared-results">
                       <div>
-                        <div className="flex items-center gap-2 px-3 py-2.5 mb-4 bg-[#004aad] text-white rounded-lg shadow-sm">
-                          <Award size={18} className="text-white shrink-0" />
-                          <h4 className="text-sm font-black uppercase tracking-wider text-white">
+                        <div className="flex items-center gap-2 px-4 py-3 mb-4 bg-[#004aad] border-2 border-blue-300 text-white rounded-lg shadow-md">
+                          <Award size={20} className="text-white shrink-0" />
+                          <h4 className="text-sm md:text-base font-extrabold uppercase tracking-wider text-white">
                             Latest Declared Results
                           </h4>
                         </div>
@@ -1938,9 +1938,9 @@ export default function App() {
                     {/* Widget C: Recommended Mock Tests */}
                     <div className="bg-white border border-[#004aad] rounded-lg shadow-sm hover:shadow-md hover:border-2 transition-all p-5 flex flex-col justify-between text-left" id="widget-mock-tests">
                       <div>
-                        <div className="flex items-center gap-2 px-3 py-2.5 mb-4 bg-[#004aad] text-white rounded-lg shadow-sm">
-                          <Trophy size={18} className="text-white shrink-0" />
-                          <h4 className="text-sm font-black uppercase tracking-wider text-white">
+                        <div className="flex items-center gap-2 px-4 py-3 mb-4 bg-[#004aad] border-2 border-blue-300 text-white rounded-lg shadow-md">
+                          <Trophy size={20} className="text-white shrink-0" />
+                          <h4 className="text-sm md:text-base font-extrabold uppercase tracking-wider text-white">
                             Recommended Mock Tests
                           </h4>
                         </div>
@@ -1983,9 +1983,9 @@ export default function App() {
                     {/* Widget D: PYQ PDF Vault */}
                     <div className="bg-white border border-[#004aad] rounded-lg shadow-sm hover:shadow-md hover:border-2 transition-all p-5 flex flex-col justify-between text-left" id="widget-pdf-vault">
                       <div>
-                        <div className="flex items-center gap-2 px-3 py-2.5 mb-4 bg-[#004aad] text-white rounded-lg shadow-sm">
-                          <BookOpen size={18} className="text-white shrink-0" />
-                          <h4 className="text-sm font-black uppercase tracking-wider text-white">
+                        <div className="flex items-center gap-2 px-4 py-3 mb-4 bg-[#004aad] border-2 border-blue-300 text-white rounded-lg shadow-md">
+                          <BookOpen size={20} className="text-white shrink-0" />
+                          <h4 className="text-sm md:text-base font-extrabold uppercase tracking-wider text-white">
                             PYQ PDF Vault
                           </h4>
                         </div>
