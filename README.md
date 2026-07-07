@@ -1,20 +1,27 @@
 <div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
+  <h1>🎓 MaziExam</h1>
+  <p><b>AI-Driven Ed-Tech Platform & Student Portal</b></p>
+  <a href="https://www.maziexam.online/">www.maziexam.online</a>
 </div>
 
-# Run and deploy your AI Studio app
+---
 
-This contains everything you need to run your app locally.
+## Overview
 
-View your app in AI Studio: https://ai.studio/apps/223bd057-c0c2-4f86-aaae-77bf6be13fc6
+**MaziExam** is a high-performance, responsive web platform designed to streamline study resources and government exam preparation. By integrating a modern frontend with intelligent backend automation, the platform delivers a personalized student dashboard and automates the aggregation of live government job alerts in real-time. 
 
-## Run Locally
+## Key Features
 
-**Prerequisites:**  Node.js
+* **AI-Powered Content Automation:** A custom backend AI Agent workflow parses, aggregates, and publishes live government job alerts, reducing manual content upload time by over 90%.
+* **Interactive Student Portal:** Features a dynamic user dashboard with persistent state architectures, secured by Firebase Authentication to manage an active and growing student base.
+* **Advanced Analytics & Privacy:** Integrated with Google Tag Manager (GTM), Google Analytics 4 (GA4) with dynamic Google Consent Mode, and Google Search Console to track acquisition channels while ensuring strict privacy compliance.
+* **Agile SDLC:** Engineered using advanced generative AI-assisted prompt-driven modeling workflows to accelerate deployment cycles, enabling rapid feature rollouts and robust hot-fixing.
 
+## Tech Stack
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+* **Frontend:** React, JavaScript, HTML5, CSS3, Tailwind CSS
+* **Backend & Auth:** Firebase Authentication, Custom AI Agents
+* **Analytics/SEO:** GA4, GTM, Google Search Console
+
+---
+
