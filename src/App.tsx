@@ -775,6 +775,170 @@ export default function App() {
   const [selectedMock, setSelectedMock] = useState<MockTest | null>(null);
   const [selectedPdf, setSelectedPdf] = useState<PaperPdf | null>(null);
 
+  // HTML5 History API Clean Routing & Deep Linking Setup
+  useEffect(() => {
+    const path = window.location.pathname;
+    const segments = path.split("/").filter(Boolean);
+    const mainSegment = segments[0];
+
+    if (!mainSegment || mainSegment === "jobs") {
+      const jobId = segments[1];
+      if (jobId) {
+        const foundJob = jobAlerts.find(j => String(j.id) === jobId);
+        if (foundJob) {
+          setSelectedJob(foundJob);
+          setCurrentPage("job-detail");
+        } else {
+          setCurrentPage("jobs");
+        }
+      } else {
+        setCurrentPage("jobs");
+      }
+    } else if (mainSegment === "mock") {
+      const mockId = segments[1];
+      if (mockId) {
+        const foundMock = mockTests.find(m => String(m.id) === mockId);
+        if (foundMock) {
+          setSelectedMock(foundMock);
+          setCurrentPage("mock-detail");
+        } else {
+          setCurrentPage("mock");
+        }
+      } else {
+        setCurrentPage("mock");
+      }
+    } else if (mainSegment === "pdf") {
+      const pdfId = segments[1];
+      if (pdfId) {
+        const foundPdf = paperPdfs.find(p => String(p.id) === pdfId);
+        if (foundPdf) {
+          setSelectedPdf(foundPdf);
+          setCurrentPage("pdf-detail");
+        } else {
+          setCurrentPage("pdf");
+        }
+      } else {
+        setCurrentPage("pdf");
+      }
+    } else {
+      const validPages = [
+        "exams", "pdf", "mock", "selection", "about", 
+        "contact", "terms", "privacy", "sitemap", 
+        "results", "classes", "dashboard"
+      ];
+      if (validPages.includes(mainSegment)) {
+        setCurrentPage(mainSegment as any);
+      } else {
+        setCurrentPage("jobs");
+      }
+    }
+
+    const handlePopState = () => {
+      const currentPath = window.location.pathname;
+      const currentSegments = currentPath.split("/").filter(Boolean);
+      const currentMain = currentSegments[0];
+
+      if (!currentMain || currentMain === "jobs") {
+        const id = currentSegments[1];
+        if (id) {
+          const found = jobAlerts.find(j => String(j.id) === id);
+          if (found) {
+            setSelectedJob(found);
+            setCurrentPage("job-detail");
+          } else {
+            setCurrentPage("jobs");
+          }
+        } else {
+          setCurrentPage("jobs");
+        }
+      } else if (currentMain === "mock") {
+        const id = currentSegments[1];
+        if (id) {
+          const found = mockTests.find(m => String(m.id) === id);
+          if (found) {
+            setSelectedMock(found);
+            setCurrentPage("mock-detail");
+          } else {
+            setCurrentPage("mock");
+          }
+        } else {
+          setCurrentPage("mock");
+        }
+      } else if (currentMain === "pdf") {
+        const id = currentSegments[1];
+        if (id) {
+          const found = paperPdfs.find(p => String(p.id) === id);
+          if (found) {
+            setSelectedPdf(found);
+            setCurrentPage("pdf-detail");
+          } else {
+            setCurrentPage("pdf");
+          }
+        } else {
+          setCurrentPage("pdf");
+        }
+      } else {
+        const validPages = [
+          "exams", "pdf", "mock", "selection", "about", 
+          "contact", "terms", "privacy", "sitemap", 
+          "results", "classes", "dashboard"
+        ];
+        if (validPages.includes(currentMain)) {
+          setCurrentPage(currentMain as any);
+        } else {
+          setCurrentPage("jobs");
+        }
+      }
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, []);
+
+  // Synchronize state changes to URL
+  useEffect(() => {
+    let targetPath = "/";
+    if (currentPage === "jobs") {
+      targetPath = "/jobs";
+    } else if (currentPage === "exams") {
+      targetPath = "/exams";
+    } else if (currentPage === "pdf") {
+      targetPath = "/pdf";
+    } else if (currentPage === "mock") {
+      targetPath = "/mock";
+    } else if (currentPage === "selection") {
+      targetPath = "/selection";
+    } else if (currentPage === "about") {
+      targetPath = "/about";
+    } else if (currentPage === "contact") {
+      targetPath = "/contact";
+    } else if (currentPage === "terms") {
+      targetPath = "/terms";
+    } else if (currentPage === "privacy") {
+      targetPath = "/privacy";
+    } else if (currentPage === "sitemap") {
+      targetPath = "/sitemap";
+    } else if (currentPage === "results") {
+      targetPath = "/results";
+    } else if (currentPage === "classes") {
+      targetPath = "/classes";
+    } else if (currentPage === "dashboard") {
+      targetPath = "/dashboard";
+    } else if (currentPage === "job-detail") {
+      targetPath = selectedJob ? `/jobs/${selectedJob.id}` : "/jobs";
+    } else if (currentPage === "mock-detail") {
+      targetPath = selectedMock ? `/mock/${selectedMock.id}` : "/mock";
+    } else if (currentPage === "pdf-detail") {
+      targetPath = selectedPdf ? `/pdf/${selectedPdf.id}` : "/pdf";
+    }
+
+    if (window.location.pathname !== targetPath) {
+      window.history.pushState(null, "", targetPath);
+    }
+  }, [currentPage, selectedJob, selectedMock, selectedPdf]);
+
   // Job Notification Toggle state (bell indicator)
   const [notificationsActive, setNotificationsActive] = useState<boolean>(() => {
     const saved = localStorage.getItem("jobNotificationsActive");
