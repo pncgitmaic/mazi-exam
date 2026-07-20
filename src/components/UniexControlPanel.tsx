@@ -80,7 +80,16 @@ export function UniexControlPanel({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password })
       });
-      const data = await res.json();
+      
+      let data;
+      try {
+        data = await res.json();
+      } catch (jsonErr) {
+        setAuthError(`Server error (${res.status}). Please check Vercel logs.`);
+        setIsVerifying(false);
+        return;
+      }
+      
       if (data.success) {
         setIsAuthenticated(true);
         sessionStorage.setItem("uniex_admin_auth", "true");
