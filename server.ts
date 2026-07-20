@@ -14,6 +14,14 @@ const PORT = 3000;
 app.use(express.json());
 
 // Gauri AI Chat API route
+app.post("/api/verify-uniex", (req, res) => {
+  const { password } = req.body;
+  if (password === "PrathamADXA@#1320051969") {
+    return res.json({ success: true });
+  }
+  return res.status(401).json({ success: false, error: "Invalid password" });
+});
+
 app.post("/api/gauri-chat", async (req, res) => {
   try {
     const { messages, language } = req.body;

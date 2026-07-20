@@ -1,3 +1,4 @@
+console.log("RENDER", window.location.pathname);
 import React, { useState, useEffect } from "react";
 import { 
   Search, 
@@ -51,6 +52,7 @@ import { additionalTranslations } from "./additionalTranslations";
 import { auth, db, onAuthStateChanged, collection, addDoc, doc, getDoc, setDoc, getDocs, query, where, orderBy, updateProfile, sendPasswordResetEmail, User as FirebaseUser, OperationType, handleFirestoreError } from "./firebase";
 import { AuthModal } from "./components/AuthModal";
 import { GauriChatBot } from "./components/GauriChatBot";
+import { UniexControlPanel } from "./components/UniexControlPanel";
 
 interface SeoKeyword {
   term: string;
@@ -741,8 +743,71 @@ export default function App() {
 
   // Navigation State
   const [currentPage, setCurrentPage] = useState<
-    "jobs" | "exams" | "pdf" | "mock" | "selection" | "about" | "contact" | "terms" | "privacy" | "sitemap" | "results" | "classes" | "dashboard" | "job-detail" | "mock-detail" | "pdf-detail"
-  >("jobs");
+    "jobs" | "exams" | "pdf" | "mock" | "selection" | "about" | "contact" | "terms" | "privacy" | "sitemap" | "results" | "classes" | "dashboard" | "job-detail" | "mock-detail" | "pdf-detail" | "uniex"
+  >(() => {
+    if (typeof window !== 'undefined') {
+      const path = window.location.pathname;
+      const segments = path.split("/").filter(Boolean);
+      const mainSegment = segments[0];
+      const validPages = [
+        "exams", "pdf", "mock", "selection", "about", 
+        "contact", "terms", "privacy", "sitemap", 
+        "results", "classes", "dashboard", "uniex"
+      ];
+      if (mainSegment && mainSegment.toLowerCase() === "uniex") return "uniex";
+      if (!mainSegment || mainSegment === "jobs") {
+         if (segments[1]) return "job-detail";
+         return "jobs";
+      }
+      if (mainSegment === "mock") {
+         if (segments[1]) return "mock-detail";
+         return "mock";
+      }
+      if (mainSegment === "pdf") {
+         if (segments[1]) return "pdf-detail";
+         return "pdf";
+      }
+      if (validPages.includes(mainSegment)) return mainSegment as any;
+    }
+    return "jobs";
+  });
+
+  // Reactive administrative datasets managed by Uniex Control Panel
+  const [activeJobAlerts, setActiveJobAlerts] = useState<JobAlert[]>(() => {
+    try {
+      const saved = localStorage.getItem("maziexam_job_alerts");
+      return saved ? JSON.parse(saved) : jobAlerts;
+    } catch (e) {
+      return jobAlerts;
+    }
+  });
+
+  const [activeMockTests, setActiveMockTests] = useState<MockTest[]>(() => {
+    try {
+      const saved = localStorage.getItem("maziexam_mock_tests");
+      return saved ? JSON.parse(saved) : mockTests;
+    } catch (e) {
+      return mockTests;
+    }
+  });
+
+  const [activePaperPdfs, setActivePaperPdfs] = useState<PaperPdf[]>(() => {
+    try {
+      const saved = localStorage.getItem("maziexam_paper_pdfs");
+      return saved ? JSON.parse(saved) : paperPdfs;
+    } catch (e) {
+      return paperPdfs;
+    }
+  });
+
+  const [activeUpcomingExams, setActiveUpcomingExams] = useState<ExamDetail[]>(() => {
+    try {
+      const saved = localStorage.getItem("maziexam_upcoming_exams");
+      return saved ? JSON.parse(saved) : upcomingExams;
+    } catch (e) {
+      return upcomingExams;
+    }
+  });
 
   // Cookie Consent Banner State
   const [showConsentBanner, setShowConsentBanner] = useState<boolean>(() => {
@@ -784,7 +849,7 @@ export default function App() {
     if (!mainSegment || mainSegment === "jobs") {
       const jobId = segments[1];
       if (jobId) {
-        const foundJob = jobAlerts.find(j => String(j.id) === jobId);
+        const foundJob = activeJobAlerts.find(j => String(j.id) === jobId);
         if (foundJob) {
           setSelectedJob(foundJob);
           setCurrentPage("job-detail");
@@ -797,7 +862,7 @@ export default function App() {
     } else if (mainSegment === "mock") {
       const mockId = segments[1];
       if (mockId) {
-        const foundMock = mockTests.find(m => String(m.id) === mockId);
+        const foundMock = activeMockTests.find(m => String(m.id) === mockId);
         if (foundMock) {
           setSelectedMock(foundMock);
           setCurrentPage("mock-detail");
@@ -810,7 +875,7 @@ export default function App() {
     } else if (mainSegment === "pdf") {
       const pdfId = segments[1];
       if (pdfId) {
-        const foundPdf = paperPdfs.find(p => String(p.id) === pdfId);
+        const foundPdf = activePaperPdfs.find(p => String(p.id) === pdfId);
         if (foundPdf) {
           setSelectedPdf(foundPdf);
           setCurrentPage("pdf-detail");
@@ -824,9 +889,11 @@ export default function App() {
       const validPages = [
         "exams", "pdf", "mock", "selection", "about", 
         "contact", "terms", "privacy", "sitemap", 
-        "results", "classes", "dashboard"
+        "results", "classes", "dashboard", "uniex"
       ];
-      if (validPages.includes(mainSegment)) {
+      if (mainSegment && mainSegment.toLowerCase() === "uniex") {
+        setCurrentPage("uniex");
+      } else if (validPages.includes(mainSegment)) {
         setCurrentPage(mainSegment as any);
       } else {
         setCurrentPage("jobs");
@@ -841,7 +908,7 @@ export default function App() {
       if (!currentMain || currentMain === "jobs") {
         const id = currentSegments[1];
         if (id) {
-          const found = jobAlerts.find(j => String(j.id) === id);
+          const found = activeJobAlerts.find(j => String(j.id) === id);
           if (found) {
             setSelectedJob(found);
             setCurrentPage("job-detail");
@@ -854,7 +921,7 @@ export default function App() {
       } else if (currentMain === "mock") {
         const id = currentSegments[1];
         if (id) {
-          const found = mockTests.find(m => String(m.id) === id);
+          const found = activeMockTests.find(m => String(m.id) === id);
           if (found) {
             setSelectedMock(found);
             setCurrentPage("mock-detail");
@@ -867,7 +934,7 @@ export default function App() {
       } else if (currentMain === "pdf") {
         const id = currentSegments[1];
         if (id) {
-          const found = paperPdfs.find(p => String(p.id) === id);
+          const found = activePaperPdfs.find(p => String(p.id) === id);
           if (found) {
             setSelectedPdf(found);
             setCurrentPage("pdf-detail");
@@ -881,9 +948,11 @@ export default function App() {
         const validPages = [
           "exams", "pdf", "mock", "selection", "about", 
           "contact", "terms", "privacy", "sitemap", 
-          "results", "classes", "dashboard"
+          "results", "classes", "dashboard", "uniex"
         ];
-        if (validPages.includes(currentMain)) {
+        if (currentMain && currentMain.toLowerCase() === "uniex") {
+          setCurrentPage("uniex");
+        } else if (validPages.includes(currentMain)) {
           setCurrentPage(currentMain as any);
         } else {
           setCurrentPage("jobs");
@@ -926,6 +995,8 @@ export default function App() {
       targetPath = "/classes";
     } else if (currentPage === "dashboard") {
       targetPath = "/dashboard";
+    } else if (currentPage === "uniex") {
+      targetPath = "/Uniex";
     } else if (currentPage === "job-detail") {
       targetPath = selectedJob ? `/jobs/${selectedJob.id}` : "/jobs";
     } else if (currentPage === "mock-detail") {
@@ -1432,7 +1503,7 @@ export default function App() {
     if (hasPortalPass || unlockedPacks.includes("all_selection_pass") || unlockedPacks.includes("selection_pass")) return true;
     
     // Find all PDFs of the same category
-    const categoryPdfs = paperPdfs.filter(p => p.category === pdf.category);
+    const categoryPdfs = activePaperPdfs.filter(p => p.category === pdf.category);
     // Find index of this PDF within that category
     const index = categoryPdfs.findIndex(p => p.id === pdf.id);
     
@@ -1444,7 +1515,7 @@ export default function App() {
     if (hasPortalPass || unlockedPacks.includes("all_selection_pass") || unlockedPacks.includes("selection_pass")) return true;
     
     // Find all tests of the same category
-    const categoryTests = mockTests.filter(t => t.category === test.category);
+    const categoryTests = activeMockTests.filter(t => t.category === test.category);
     // Find index of this test within that category
     const index = categoryTests.findIndex(t => t.id === test.id);
     
@@ -1576,7 +1647,7 @@ export default function App() {
 
   const handleStartTest = (test: MockTest) => {
     // Check if the test is free (index < 2) and has reached the limit of 3 attempts
-    const categoryTests = mockTests.filter(t => t.category === test.category);
+    const categoryTests = activeMockTests.filter(t => t.category === test.category);
     const testIndexInCategory = categoryTests.findIndex(t => t.id === test.id);
     const isPremiumTest = testIndexInCategory >= 2;
     const hasPass = hasPortalPass || unlockedPacks.includes("all_selection_pass") || unlockedPacks.includes("selection_pass");
@@ -1751,7 +1822,7 @@ export default function App() {
   };
 
   // Filter current content based on search query and filters
-  const filteredJobs = jobAlerts.filter((job) => {
+  const filteredJobs = activeJobAlerts.filter((job) => {
     const matchesSearch = 
       job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       job.organization.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -1762,7 +1833,7 @@ export default function App() {
     return matchesSearch && job.category === jobCategoryFilter;
   });
 
-  const filteredExams = upcomingExams.filter((exam) => {
+  const filteredExams = activeUpcomingExams.filter((exam) => {
     const matchesSearch = 
       exam.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       exam.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -1774,7 +1845,7 @@ export default function App() {
     return matchesSearch && exam.category === examFilter;
   });
 
-  const filteredPdfs = paperPdfs.filter((pdf) => {
+  const filteredPdfs = activePaperPdfs.filter((pdf) => {
     const matchesSearch = 
       pdf.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       pdf.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -1782,24 +1853,43 @@ export default function App() {
     
     if (pdfFilter === "all") return matchesSearch;
     if (pdfFilter === "upcoming") {
-      const isUpcomingCategory = upcomingExams.some(exam => exam.category === pdf.category && exam.isUpcoming);
+      const isUpcomingCategory = activeUpcomingExams.some(exam => exam.category === pdf.category && exam.isUpcoming);
       return matchesSearch && isUpcomingCategory;
     }
     return matchesSearch && pdf.category === pdfFilter;
   });
 
-  const filteredTests = mockTests.filter((test) => {
+  const filteredTests = activeMockTests.filter((test) => {
     const matchesSearch = 
       test.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       test.category.toLowerCase().includes(searchQuery.toLowerCase());
     
     if (mockFilter === "all") return matchesSearch;
     if (mockFilter === "upcoming") {
-      const isUpcomingCategory = upcomingExams.some(exam => exam.category === test.category && exam.isUpcoming);
+      const isUpcomingCategory = activeUpcomingExams.some(exam => exam.category === test.category && exam.isUpcoming);
       return matchesSearch && isUpcomingCategory;
     }
     return matchesSearch && test.category === mockFilter;
   });
+
+  if (currentPage === "uniex") {
+    return (
+      <UniexControlPanel
+        jobAlerts={activeJobAlerts}
+        setJobAlerts={setActiveJobAlerts}
+        mockTests={activeMockTests}
+        setMockTests={setActiveMockTests}
+        paperPdfs={activePaperPdfs}
+        setPaperPdfs={setActivePaperPdfs}
+        upcomingExams={activeUpcomingExams}
+        setUpcomingExams={setActiveUpcomingExams}
+        onClose={() => {
+          setCurrentPage("jobs");
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans" id="app-root">
@@ -2503,7 +2593,7 @@ export default function App() {
                           </h4>
                         </div>
                         <div className="space-y-3">
-                          {upcomingExams.slice(0, 3).map((exam) => (
+                          {activeUpcomingExams.slice(0, 3).map((exam) => (
                             <div 
                               key={exam.id} 
                               onClick={() => { setActiveExamModal(exam); }}
@@ -2602,7 +2692,7 @@ export default function App() {
                           </h4>
                         </div>
                         <div className="space-y-3">
-                          {mockTests.slice(0, 3).map((test) => (
+                          {activeMockTests.slice(0, 3).map((test) => (
                             <div 
                               key={test.id} 
                               onClick={() => { setActiveTestModal(test); }}
@@ -2647,7 +2737,7 @@ export default function App() {
                           </h4>
                         </div>
                         <div className="space-y-3">
-                          {paperPdfs.slice(0, 3).map((pdf) => (
+                          {activePaperPdfs.slice(0, 3).map((pdf) => (
                             <div 
                               key={pdf.id} 
                               onClick={() => { setActivePdfModal(pdf); }}
@@ -2850,7 +2940,7 @@ export default function App() {
               filteredPdfs.length > 0 ? (
                 filteredPdfs.map((pdf) => {
                   // Check if this PDF is a restricted item (index >= 2 in its category)
-                  const categoryPdfs = paperPdfs.filter(p => p.category === pdf.category);
+                  const categoryPdfs = activePaperPdfs.filter(p => p.category === pdf.category);
                   const pdfIndexInCategory = categoryPdfs.findIndex(p => p.id === pdf.id);
                   const isPremiumPdf = pdfIndexInCategory >= 2;
                   const accessible = hasPortalPass || !isPremiumPdf;
@@ -2940,7 +3030,7 @@ export default function App() {
               filteredTests.length > 0 ? (
                 filteredTests.map((test) => {
                   // Check if this Test is a restricted item (index >= 2 in its category)
-                  const categoryTests = mockTests.filter(t => t.category === test.category);
+                  const categoryTests = activeMockTests.filter(t => t.category === test.category);
                   const testIndexInCategory = categoryTests.findIndex(t => t.id === test.id);
                   const isPremiumTest = testIndexInCategory >= 2;
                   const accessible = hasPortalPass || !isPremiumTest;
