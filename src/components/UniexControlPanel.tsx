@@ -721,32 +721,92 @@ export function UniexControlPanel({
           
           {/* DEFAULT STATE: editors tools view */}
           {activeTab === "editors_tools" && (
-            <div className="flex-1 flex flex-col items-center justify-center text-center p-8 max-w-2xl mx-auto" id="uniex-default-view">
-              <div className="w-20 h-20 rounded-full bg-slate-100 border border-slate-200 text-slate-400 flex items-center justify-center text-4xl mb-6 shadow-sm">
-                🛠️
+            <div className="flex-1 flex flex-col p-8 w-full max-w-6xl mx-auto" id="uniex-default-view">
+              <div className="flex flex-col md:flex-row items-start md:items-center gap-4 mb-8 border-b border-slate-200 pb-4">
+                <div className="w-14 h-14 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-3xl shadow-sm border border-indigo-100">
+                  📊
+                </div>
+                <div className="text-left">
+                  <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight font-sans uppercase">
+                    Front-End Data Dashboard
+                  </h2>
+                  <p className="text-sm text-slate-500 mt-1 font-medium max-w-xl">
+                    Overview of live active data across the platform. Click on any module card below to manage its corresponding entries in the control panel.
+                  </p>
+                </div>
               </div>
-              <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight font-sans uppercase">
-                editors tools
-              </h2>
-              <p className="text-sm text-slate-500 mt-3 leading-relaxed font-sans max-w-md">
-                Welcome to the माझी Exam unified portal control panel. Select any top navigation pill or use quick-add buttons to manage job listings, design real-time mock questionnaires, edit answer key PDFs, or audit registered candidate rosters.
-              </p>
-              <div className="grid grid-cols-2 gap-4 mt-8 w-full max-w-md">
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 w-full">
+                {/* Job Alerts Card */}
                 <button 
                   onClick={() => setActiveTab("jobs")}
-                  className="p-4 bg-white border border-slate-200 rounded-xl hover:border-[#ff6f00] hover:shadow-md transition-all text-left flex flex-col gap-1.5"
+                  className="bg-white border border-slate-200 rounded-2xl p-6 hover:border-blue-500 hover:shadow-lg transition-all cursor-pointer flex flex-col gap-5 group text-left relative overflow-hidden"
                 >
-                  <span className="text-xl">📰</span>
-                  <span className="text-xs font-black uppercase text-slate-800">Job Alerts</span>
-                  <span className="text-[10px] text-slate-400">Manage 500+ Sarkari and private vacancies.</span>
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-50 to-transparent rounded-bl-full -z-0 opacity-50"></div>
+                  <div className="flex justify-between items-start z-10 w-full">
+                    <div className="w-12 h-12 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center text-2xl group-hover:bg-blue-500 group-hover:text-white transition-colors shadow-sm">
+                      📰
+                    </div>
+                    <span className="text-4xl font-black text-slate-800">{jobAlerts.length}</span>
+                  </div>
+                  <div className="z-10 mt-2">
+                    <h3 className="font-black text-slate-900 uppercase text-sm tracking-wide">Job Alerts</h3>
+                    <p className="text-xs text-slate-500 mt-1.5 font-medium leading-relaxed">Manage active global and private job postings.</p>
+                  </div>
                 </button>
+
+                {/* Upcoming Exams Card */}
                 <button 
-                  onClick={() => setActiveTab("create_mock_test")}
-                  className="p-4 bg-white border border-slate-200 rounded-xl hover:border-[#ff6f00] hover:shadow-md transition-all text-left flex flex-col gap-1.5"
+                  onClick={() => setActiveTab("gov_jobs")} 
+                  className="bg-white border border-slate-200 rounded-2xl p-6 hover:border-emerald-500 hover:shadow-lg transition-all cursor-pointer flex flex-col gap-5 group text-left relative overflow-hidden"
                 >
-                  <span className="text-xl">➕</span>
-                  <span className="text-xs font-black uppercase text-slate-800">Mock Builder</span>
-                  <span className="text-[10px] text-slate-400">Design custom MCQ tests instantly.</span>
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-emerald-50 to-transparent rounded-bl-full -z-0 opacity-50"></div>
+                  <div className="flex justify-between items-start z-10 w-full">
+                    <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center text-2xl group-hover:bg-emerald-500 group-hover:text-white transition-colors shadow-sm">
+                      📅
+                    </div>
+                    <span className="text-4xl font-black text-slate-800">{upcomingExams.length}</span>
+                  </div>
+                  <div className="z-10 mt-2">
+                    <h3 className="font-black text-slate-900 uppercase text-sm tracking-wide">Upcoming Exams</h3>
+                    <p className="text-xs text-slate-500 mt-1.5 font-medium leading-relaxed">Track active exams and target schedules.</p>
+                  </div>
+                </button>
+
+                {/* Mock Tests Card */}
+                <button 
+                  onClick={() => setActiveTab("live_mock_test")}
+                  className="bg-white border border-slate-200 rounded-2xl p-6 hover:border-orange-500 hover:shadow-lg transition-all cursor-pointer flex flex-col gap-5 group text-left relative overflow-hidden"
+                >
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-orange-50 to-transparent rounded-bl-full -z-0 opacity-50"></div>
+                  <div className="flex justify-between items-start z-10 w-full">
+                    <div className="w-12 h-12 rounded-full bg-orange-50 text-orange-500 flex items-center justify-center text-2xl group-hover:bg-orange-500 group-hover:text-white transition-colors shadow-sm">
+                      📝
+                    </div>
+                    <span className="text-4xl font-black text-slate-800">{mockTests.length}</span>
+                  </div>
+                  <div className="z-10 mt-2">
+                    <h3 className="font-black text-slate-900 uppercase text-sm tracking-wide">Mock Tests</h3>
+                    <p className="text-xs text-slate-500 mt-1.5 font-medium leading-relaxed">Review active test simulations and questions.</p>
+                  </div>
+                </button>
+
+                {/* PDFs Card */}
+                <button 
+                  onClick={() => setActiveTab("pdfs")}
+                  className="bg-white border border-slate-200 rounded-2xl p-6 hover:border-rose-500 hover:shadow-lg transition-all cursor-pointer flex flex-col gap-5 group text-left relative overflow-hidden"
+                >
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-rose-50 to-transparent rounded-bl-full -z-0 opacity-50"></div>
+                  <div className="flex justify-between items-start z-10 w-full">
+                    <div className="w-12 h-12 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center text-2xl group-hover:bg-rose-500 group-hover:text-white transition-colors shadow-sm">
+                      📄
+                    </div>
+                    <span className="text-4xl font-black text-slate-800">{paperPdfs.length}</span>
+                  </div>
+                  <div className="z-10 mt-2">
+                    <h3 className="font-black text-slate-900 uppercase text-sm tracking-wide">Paper PDFs</h3>
+                    <p className="text-xs text-slate-500 mt-1.5 font-medium leading-relaxed">Manage PYQ booklets and study materials.</p>
+                  </div>
                 </button>
               </div>
             </div>
@@ -1861,11 +1921,11 @@ export function UniexControlPanel({
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold uppercase text-slate-500 mb-1">Download Tracker URL</label>
+                <label className="block text-[11px] font-bold uppercase text-slate-500 mb-1">Document Link (Google Drive / URL)</label>
                 <input
                   type="text"
                   required
-                  placeholder="#"
+                  placeholder="Paste Google Drive link"
                   value={pdfForm.downloadUrl}
                   onChange={(e) => setPdfForm({ ...pdfForm, downloadUrl: e.target.value })}
                   className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-xs focus:outline-none focus:border-[#004aad]"
