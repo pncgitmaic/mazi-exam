@@ -53,6 +53,8 @@ import { auth, db, onAuthStateChanged, collection, addDoc, doc, getDoc, setDoc, 
 import { AuthModal } from "./components/AuthModal";
 import { GauriChatBot } from "./components/GauriChatBot";
 import { UniexControlPanel } from "./components/UniexControlPanel";
+import { defaultBanners, HomeBanner } from "./bannerData";
+import { defaultJobFilters, JobFilterToggle } from "./jobFiltersData";
 
 interface SeoKeyword {
   term: string;
@@ -774,6 +776,37 @@ export default function App() {
 
   // Reactive administrative datasets managed by Uniex Control Panel
   const [activeJobAlerts, setActiveJobAlerts] = useState<JobAlert[]>(jobAlerts);
+  const [homeBanners, setHomeBanners] = useState<HomeBanner[]>(defaultBanners);
+  const [jobFilters, setJobFilters] = useState<JobFilterToggle[]>(defaultJobFilters);
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const settingsDoc = await getDoc(doc(db, "settings", "homepage_banners"));
+        if (settingsDoc.exists()) {
+          const data = settingsDoc.data();
+          if (data.banners && Array.isArray(data.banners)) {
+            setHomeBanners(data.banners);
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching homepage banners:", err);
+      }
+
+      try {
+        const filterDoc = await getDoc(doc(db, "settings", "job_filter_toggles"));
+        if (filterDoc.exists()) {
+          const data = filterDoc.data();
+          if (data.filters && Array.isArray(data.filters)) {
+            setJobFilters(data.filters);
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching job filters:", err);
+      }
+    };
+    fetchSettings();
+  }, []);
 
   useEffect(() => {
     const fetchJobAlerts = async () => {
@@ -2232,14 +2265,10 @@ export default function App() {
               <div className="flex flex-col text-left relative z-10 max-w-xl">
                 {/* Dynamic Sliding Text content */}
                 <h2 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight leading-tight uppercase font-sans">
-                  {activeBannerIndex === 0 && t("Active Government & Private Job Alerts 2026")}
-                  {activeBannerIndex === 1 && t("Authentic PYQs & Solution Key PDF Vault")}
-                  {activeBannerIndex === 2 && t("Free Live Exam Simulators & Daily Streaks")}
+                  {homeBanners[activeBannerIndex]?.heading}
                 </h2>
                 <p className="text-xs md:text-sm text-slate-500 font-medium mt-1.5 max-w-lg leading-relaxed">
-                  {activeBannerIndex === 0 && t("Explore immediate recruitment announcements from top boards including MPSC, UPSC, SSC, and premium private companies like TCS and Infosys.")}
-                  {activeBannerIndex === 1 && t("Study high-resolution official reference answer booklets, exam-oriented notes, and syllabus breakdowns curated for top scoring.")}
-                  {activeBannerIndex === 2 && t("Take free test drives anytime, practice without boundaries, track your historic accuracy levels and secure success.")}
+                  {homeBanners[activeBannerIndex]?.description}
                 </p>
                 
                 <div className="flex gap-2.5 mt-4">
@@ -2251,9 +2280,7 @@ export default function App() {
                     }}
                     className="bg-[#004aad] hover:bg-[#004aad]/90 text-white font-bold text-xs px-5 py-2.5 rounded shadow-sm transition-all uppercase tracking-wider cursor-pointer"
                   >
-                    {activeBannerIndex === 0 && t("View Job Alerts")}
-                    {activeBannerIndex === 1 && t("Read PDFs")}
-                    {activeBannerIndex === 2 && t("Launch Simulator")}
+                    {homeBanners[activeBannerIndex]?.buttonText}
                   </button>
                 </div>
               </div>
@@ -2370,11 +2397,7 @@ export default function App() {
         {/* PAGE 1: JOB ALERTS ONLY - CATEGORY TOGGLES */}
         {currentPage === "jobs" && (
           <div className="flex flex-wrap justify-center gap-2 md:gap-3 py-4 px-4 bg-slate-100/50 rounded-xl border border-slate-200/60 max-w-5xl mx-auto w-full shadow-xs mb-4" id="job-filter-toggles">
-            {[
-              { id: "all", label: "All Jobs", colorClass: "bg-[#004aad]" },
-              { id: "Government", label: "Govt Jobs", colorClass: "bg-amber-600" },
-              { id: "Private", label: "Private Jobs", colorClass: "bg-indigo-600" }
-            ].map((categoryItem) => (
+            {jobFilters.map((categoryItem) => (
               <button
                 key={categoryItem.id}
                 id={`toggle-job-${categoryItem.id.toLowerCase().replace(/\s+/g, "-")}`}

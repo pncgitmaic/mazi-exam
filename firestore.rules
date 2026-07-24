@@ -155,5 +155,10 @@ service cloud.firestore {
       allow create, update: if isValidId(jobId) && isValidJobAlert(request.resource.data);
       allow delete: if true;
     }
+    match /settings/{docId} {
+      allow read: if true;
+      allow create, update: if true; // Admin console access in real app, open for this demo
+      allow delete: if false;
+    }
   }
 }
