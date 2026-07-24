@@ -127,5 +127,33 @@ service cloud.firestore {
       
       allow read, update, delete: if false; // Admin console access only
     }
+
+    // JOB ALERTS SCHEMA AND VAL
+    function isValidJobAlert(data) {
+      return data.keys().hasAll(['id', 'title', 'category', 'organization', 'postName', 'vacancies', 'salary', 'lastDate', 'qualification', 'link', 'details'])
+        && data.id is string
+        && data.title is string
+        && data.category is string
+        && data.organization is string
+        && data.postName is string
+        && data.vacancies is string
+        && data.salary is string
+        && data.lastDate is string
+        && data.qualification is string
+        && data.link is string
+        && data.details is string
+        && (!data.keys().hasAny(['seoTitle']) || data.seoTitle is string)
+        && (!data.keys().hasAny(['seoDescription']) || data.seoDescription is string)
+        && (!data.keys().hasAny(['keywords']) || data.keywords is string)
+        && (!data.keys().hasAny(['slug']) || data.slug is string)
+        && (!data.keys().hasAny(['vacancyTableHtml']) || data.vacancyTableHtml is string)
+        && (!data.keys().hasAny(['selectionProcessHtml']) || data.selectionProcessHtml is string);
+    }
+
+    match /job_alerts/{jobId} {
+      allow read: if true;
+      allow create, update: if isValidId(jobId) && isValidJobAlert(request.resource.data);
+      allow delete: if true;
+    }
   }
 }

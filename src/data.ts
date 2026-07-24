@@ -809,6 +809,12 @@ export interface JobAlert {
   qualification: string;
   link: string;
   details: string;
+  seoTitle?: string;
+  seoDescription?: string;
+  keywords?: string;
+  slug?: string;
+  vacancyTableHtml?: string;
+  selectionProcessHtml?: string;
 }
 
 export const jobAlerts: JobAlert[] = [

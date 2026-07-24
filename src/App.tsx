@@ -773,14 +773,26 @@ export default function App() {
   });
 
   // Reactive administrative datasets managed by Uniex Control Panel
-  const [activeJobAlerts, setActiveJobAlerts] = useState<JobAlert[]>(() => {
-    try {
-      const saved = localStorage.getItem("maziexam_job_alerts");
-      return saved ? JSON.parse(saved) : jobAlerts;
-    } catch (e) {
-      return jobAlerts;
-    }
-  });
+  const [activeJobAlerts, setActiveJobAlerts] = useState<JobAlert[]>(jobAlerts);
+
+  useEffect(() => {
+    const fetchJobAlerts = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(db, "job_alerts"));
+        if (!querySnapshot.empty) {
+          const fetchedJobs = querySnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          } as JobAlert));
+          // Optionally, you might sort them here. For now just set them.
+          setActiveJobAlerts(fetchedJobs);
+        }
+      } catch (err) {
+        console.error("Error fetching job alerts from Firestore:", err);
+      }
+    };
+    fetchJobAlerts();
+  }, []);
 
   const [activeMockTests, setActiveMockTests] = useState<MockTest[]>(() => {
     try {
@@ -849,7 +861,7 @@ export default function App() {
     if (!mainSegment || mainSegment === "jobs") {
       const jobId = segments[1];
       if (jobId) {
-        const foundJob = activeJobAlerts.find(j => String(j.id) === jobId);
+        const foundJob = activeJobAlerts.find(j => String(j.id) === jobId || String(j.slug) === jobId);
         if (foundJob) {
           setSelectedJob(foundJob);
           setCurrentPage("job-detail");
@@ -908,7 +920,7 @@ export default function App() {
       if (!currentMain || currentMain === "jobs") {
         const id = currentSegments[1];
         if (id) {
-          const found = activeJobAlerts.find(j => String(j.id) === id);
+          const found = activeJobAlerts.find(j => String(j.id) === id || String(j.slug) === id);
           if (found) {
             setSelectedJob(found);
             setCurrentPage("job-detail");
@@ -998,7 +1010,7 @@ export default function App() {
     } else if (currentPage === "uniex") {
       targetPath = "/Uniex";
     } else if (currentPage === "job-detail") {
-      targetPath = selectedJob ? `/jobs/${selectedJob.id}` : "/jobs";
+      targetPath = selectedJob ? `/jobs/${selectedJob.slug || selectedJob.id}` : "/jobs";
     } else if (currentPage === "mock-detail") {
       targetPath = selectedMock ? `/mock/${selectedMock.id}` : "/mock";
     } else if (currentPage === "pdf-detail") {
@@ -1207,6 +1219,13 @@ export default function App() {
         title = "Site Directory & Portal Index | Navigation - MaziExam";
         desc = "Navigate the complete architecture of MaziExam. Instantly access job alerts, PDF vaults, live simulators, about us pages, and premium passes.";
         keywords = "sitemap, site map, page directory, website index, portal navigation";
+        break;
+      case "job-detail":
+        if (selectedJob) {
+          title = selectedJob.seoTitle || `${selectedJob.title} - ${selectedJob.organization} | MaziExam`;
+          desc = selectedJob.seoDescription || selectedJob.details.substring(0, 160);
+          keywords = selectedJob.keywords || keywords;
+        }
         break;
       default:
         break;
@@ -4803,6 +4822,12 @@ export default function App() {
                           <h4 className="text-xs font-black uppercase text-blue-900 tracking-wider mb-3 flex items-center gap-1 border-b pb-2">
                             📊 Vacancy Distribution Breakdown
                           </h4>
+                          {selectedJob.vacancyTableHtml ? (
+                            <div 
+                              className="text-xs md:text-sm text-slate-600 leading-relaxed prose prose-sm max-w-none"
+                              dangerouslySetInnerHTML={{ __html: selectedJob.vacancyTableHtml }}
+                            />
+                          ) : (
                           <div className="overflow-x-auto">
                             <table className="w-full text-xs text-slate-600 border border-slate-200 rounded-xl overflow-hidden bg-slate-50/20">
                               <thead>
@@ -4853,6 +4878,7 @@ export default function App() {
                               </tbody>
                             </table>
                           </div>
+                          )}
                         </div>
 
                         {/* Post Eligibility and Details */}
@@ -4870,20 +4896,28 @@ export default function App() {
                             <h4 className="text-xs font-black uppercase text-blue-900 tracking-wider border-b pb-1.5 mb-2">
                               ⚙️ Selection Process Sequence
                             </h4>
+                            {selectedJob.selectionProcessHtml ? (
+                              <div 
+                                className="text-xs md:text-sm text-slate-600 leading-relaxed prose prose-sm max-w-none"
+                                dangerouslySetInnerHTML={{ __html: selectedJob.selectionProcessHtml }}
+                              />
+                            ) : (
                             <ol className="text-xs text-slate-600 space-y-2 pl-4 list-decimal leading-relaxed">
                               <li><strong>Phase I (Written Examination):</strong> Multiple Choice Questions (Bilingual standard) covering GS and mental ability.</li>
                               <li><strong>Phase II (Physical Fitness Evaluation / Technical Skill Test):</strong> Wherever explicitly applicable based on post requirements.</li>
                               <li><strong>Phase III (Formal Document Check):</strong> Verification of age, category credentials, and educational qualification certificates.</li>
                             </ol>
+                            )}
                           </div>
 
                           <div>
                             <h4 className="text-xs font-black uppercase text-blue-900 tracking-wider border-b pb-1.5 mb-2">
                               📄 Recruitment Summary Notes
                             </h4>
-                            <p className="text-xs md:text-sm text-slate-600 leading-relaxed">
-                              {selectedJob.details}
-                            </p>
+                            <div 
+                              className="text-xs md:text-sm text-slate-600 leading-relaxed prose prose-sm max-w-none"
+                              dangerouslySetInnerHTML={{ __html: selectedJob.details }}
+                            />
                           </div>
                         </div>
                       </div>
@@ -5305,9 +5339,10 @@ export default function App() {
 
               <div>
                 <h4 className="font-bold text-xs text-[#004aad] uppercase tracking-wider mb-1.5">{t("Job Overview")}</h4>
-                <p className="text-slate-700 leading-relaxed bg-blue-50/40 p-3 rounded-lg border border-blue-100">
-                  {t(activeJobModal.details)}
-                </p>
+                <div 
+                  className="text-slate-700 leading-relaxed bg-blue-50/40 p-3 rounded-lg border border-blue-100 prose prose-sm max-w-none"
+                  dangerouslySetInnerHTML={{ __html: activeJobModal.details }}
+                />
               </div>
 
               <div>

@@ -143,7 +143,13 @@ export function UniexControlPanel({
     lastDate: "",
     qualification: "",
     link: "",
-    details: ""
+    details: "",
+    seoTitle: "",
+    seoDescription: "",
+    keywords: "",
+    slug: "",
+    vacancyTableHtml: "",
+    selectionProcessHtml: ""
   });
 
   const [pdfForm, setPdfForm] = useState<Omit<PaperPdf, "id">>({
@@ -216,11 +222,6 @@ export function UniexControlPanel({
   }, []);
 
   // Sync state data arrays to localStorage
-  const saveJobsToLocal = (updated: JobAlert[]) => {
-    setJobAlerts(updated);
-    localStorage.setItem("maziexam_job_alerts", JSON.stringify(updated));
-  };
-
   const saveMockTestsToLocal = (updated: MockTest[]) => {
     setMockTests(updated);
     localStorage.setItem("maziexam_mock_tests", JSON.stringify(updated));
@@ -249,50 +250,75 @@ export function UniexControlPanel({
   };
 
   // Handle Job submission
-  const handleJobSubmit = (e: React.FormEvent) => {
+  const handleJobSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!jobForm.title || !jobForm.organization || !jobForm.postName) {
       alert("Please fill all mandatory fields.");
       return;
     }
 
-    if (editingJob) {
-      // Edit
-      const updated = jobAlerts.map(j => j.id === editingJob.id ? { ...editingJob, ...jobForm } : j);
-      saveJobsToLocal(updated);
-      alert("Job alert successfully updated!");
-    } else {
-      // Add
-      const newJob: JobAlert = {
-        id: "job-" + Date.now(),
-        ...jobForm
-      };
-      saveJobsToLocal([newJob, ...jobAlerts]);
-      alert("New Job alert added successfully!");
-    }
+    try {
+      if (editingJob) {
+        // Edit
+        const jobRef = doc(db, "job_alerts", editingJob.id);
+        const updatedJob = { ...editingJob, ...jobForm };
+        await setDoc(jobRef, updatedJob);
+        
+        const updated = jobAlerts.map(j => j.id === editingJob.id ? updatedJob : j);
+        setJobAlerts(updated);
+        alert("Job alert successfully updated in Firestore!");
+      } else {
+        // Add
+        const newId = "job-" + Date.now();
+        const newJob: JobAlert = {
+          id: newId,
+          ...jobForm
+        };
+        const jobRef = doc(db, "job_alerts", newId);
+        await setDoc(jobRef, newJob);
+        
+        setJobAlerts([newJob, ...jobAlerts]);
+        alert("New Job alert added successfully to Firestore!");
+      }
 
-    // Reset Form
-    setJobForm({
-      title: "",
-      category: "Government",
-      organization: "",
-      postName: "",
-      vacancies: "",
-      salary: "",
-      lastDate: "",
-      qualification: "",
-      link: "",
-      details: ""
-    });
-    setEditingJob(null);
-    setJobModalOpen(false);
+      // Reset Form
+      setJobForm({
+        title: "",
+        category: "Government",
+        organization: "",
+        postName: "",
+        vacancies: "",
+        salary: "",
+        lastDate: "",
+        qualification: "",
+        link: "",
+        details: "",
+        seoTitle: "",
+        seoDescription: "",
+        keywords: "",
+        slug: "",
+        vacancyTableHtml: "",
+        selectionProcessHtml: ""
+      });
+      setEditingJob(null);
+      setJobModalOpen(false);
+    } catch (err: any) {
+      console.error("Error saving job to Firestore:", err);
+      alert("Failed to save job alert. Please try again.");
+    }
   };
 
   // Handle Job delete
-  const handleDeleteJob = (id: string, title: string) => {
+  const handleDeleteJob = async (id: string, title: string) => {
     if (confirm(`Are you sure you want to delete the job alert: "${title}"?`)) {
-      const updated = jobAlerts.filter(j => j.id !== id);
-      saveJobsToLocal(updated);
+      try {
+        await deleteDoc(doc(db, "job_alerts", id));
+        const updated = jobAlerts.filter(j => j.id !== id);
+        setJobAlerts(updated);
+      } catch (err: any) {
+        console.error("Error deleting job from Firestore:", err);
+        alert("Failed to delete job alert.");
+      }
     }
   };
 
@@ -838,7 +864,13 @@ export function UniexControlPanel({
                       lastDate: "",
                       qualification: "",
                       link: "",
-                      details: ""
+                      details: "",
+                      seoTitle: "",
+                      seoDescription: "",
+                      keywords: "",
+                      slug: "",
+                      vacancyTableHtml: "",
+                      selectionProcessHtml: ""
                     });
                     setJobModalOpen(true);
                   }}
@@ -915,6 +947,17 @@ export function UniexControlPanel({
                               <div className="flex justify-end gap-1.5">
                                 <button
                                   onClick={() => {
+                                    const jobLink = `${window.location.origin}/jobs/${job.slug || job.id}`;
+                                    navigator.clipboard.writeText(jobLink);
+                                    alert(`Copied display link to clipboard: ${jobLink}`);
+                                  }}
+                                  className="p-1.5 bg-slate-100 hover:bg-emerald-600 text-slate-600 hover:text-white rounded transition-colors"
+                                  title="Copy Display Link"
+                                >
+                                  🔗
+                                </button>
+                                <button
+                                  onClick={() => {
                                     setEditingJob(job);
                                     setJobForm({
                                       title: job.title,
@@ -926,7 +969,13 @@ export function UniexControlPanel({
                                       lastDate: job.lastDate,
                                       qualification: job.qualification,
                                       link: job.link,
-                                      details: job.details
+                                      details: job.details,
+                                      seoTitle: job.seoTitle || "",
+                                      seoDescription: job.seoDescription || "",
+                                      keywords: job.keywords || "",
+                                      slug: job.slug || "",
+                                      vacancyTableHtml: job.vacancyTableHtml || "",
+                                      selectionProcessHtml: job.selectionProcessHtml || ""
                                     });
                                     setJobModalOpen(true);
                                   }}
@@ -1796,14 +1845,91 @@ export function UniexControlPanel({
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold uppercase text-slate-500 mb-1">Detailed Recruitment Information</label>
+                <label className="block text-[11px] font-bold uppercase text-slate-500 mb-1">Vacancy Distribution Breakdown (HTML / Rich Text)</label>
                 <textarea
-                  rows={3}
-                  placeholder="Provide any additional syllabus points, age limits, or steps to apply..."
+                  rows={4}
+                  placeholder="<p>Enter HTML or details for Vacancy Distribution (optional)</p>"
+                  value={jobForm.vacancyTableHtml}
+                  onChange={(e) => setJobForm({ ...jobForm, vacancyTableHtml: e.target.value })}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-xs focus:outline-none focus:border-[#004aad] font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold uppercase text-slate-500 mb-1">Selection Process Sequence (HTML / Rich Text)</label>
+                <textarea
+                  rows={4}
+                  placeholder="<p>Enter HTML or details for Selection Process (optional)</p>"
+                  value={jobForm.selectionProcessHtml}
+                  onChange={(e) => setJobForm({ ...jobForm, selectionProcessHtml: e.target.value })}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-xs focus:outline-none focus:border-[#004aad] font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold uppercase text-slate-500 mb-1">Detailed Recruitment Information (HTML / Rich Text)</label>
+                <textarea
+                  rows={5}
+                  placeholder="<p>Enter HTML details here or multiline text...</p>"
                   value={jobForm.details}
                   onChange={(e) => setJobForm({ ...jobForm, details: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-xs focus:outline-none focus:border-[#004aad]"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-xs focus:outline-none focus:border-[#004aad] font-mono"
                 />
+              </div>
+
+              {/* SEO Configurations */}
+              <div className="pt-4 mt-2 border-t border-slate-100">
+                <h4 className="text-sm font-bold text-slate-800 mb-3">SEO & URL Configuration</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase text-slate-500 mb-1">Edit Display Link (URL Path)</label>
+                    <div className="flex bg-slate-50 border border-slate-200 rounded-lg overflow-hidden">
+                      <span className="bg-slate-100 text-slate-500 border-r border-slate-200 px-3 py-2.5 text-xs flex items-center">
+                        /jobs/
+                      </span>
+                      <input
+                        type="text"
+                        placeholder="e.g. mpsc-rajyaseva-2026"
+                        value={jobForm.slug}
+                        onChange={(e) => setJobForm({ ...jobForm, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-') })}
+                        className="w-full bg-transparent p-2.5 text-xs focus:outline-none focus:bg-white"
+                      />
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-1">Leave empty to use default ID. This changes the link users see.</p>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase text-slate-500 mb-1">SEO Title</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. MPSC Rajyaseva Recruitment 2026 - Apply Online"
+                      value={jobForm.seoTitle}
+                      onChange={(e) => setJobForm({ ...jobForm, seoTitle: e.target.value })}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-xs focus:outline-none focus:border-[#004aad]"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 gap-4">
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase text-slate-500 mb-1">SEO Description</label>
+                    <input
+                      type="text"
+                      placeholder="Short description for Google Search results..."
+                      value={jobForm.seoDescription}
+                      onChange={(e) => setJobForm({ ...jobForm, seoDescription: e.target.value })}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-xs focus:outline-none focus:border-[#004aad]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase text-slate-500 mb-1">Keywords (Comma separated)</label>
+                    <input
+                      type="text"
+                      placeholder="mpsc, govt jobs, maharashtra"
+                      value={jobForm.keywords}
+                      onChange={(e) => setJobForm({ ...jobForm, keywords: e.target.value })}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-xs focus:outline-none focus:border-[#004aad]"
+                    />
+                  </div>
+                </div>
               </div>
 
               <div className="pt-4 border-t border-slate-100 flex justify-end gap-2.5">
